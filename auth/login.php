@@ -1,8 +1,7 @@
 <?php
 session_start();
 
-require_once '../config/database.php';
-require_once '../config/functions.php';
+require_once '../config/db.php';
 require_once '../config/auth_functions.php'; // <-- IMPORTANT: contains redirect_based_on_role()
 
 $error = '';

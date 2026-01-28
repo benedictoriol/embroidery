@@ -521,7 +521,8 @@ INSERT INTO `users` (`id`, `fullname`, `email`, `password`, `role`, `status`, `c
 -- Indexes for table `activities`
 --
 ALTER TABLE `activities`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `analytics_data`
@@ -823,6 +824,13 @@ ALTER TABLE `users`
 --
 ALTER TABLE `analytics_data`
   ADD CONSTRAINT `analytics_data_ibfk_1` FOREIGN KEY (`shop_id`) REFERENCES `shops` (`id`);
+
+--
+-- Constraints for table `activities`
+--
+ALTER TABLE `activities`
+  ADD CONSTRAINT `activities_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
 
 --
 -- Constraints for table `appointments`
