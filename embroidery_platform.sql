@@ -1,0 +1,929 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Jan 28, 2026 at 10:47 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `embroidery_platform`
+--
+
+DELIMITER $$
+--
+-- Functions
+--
+CREATE DEFINER=`root`@`localhost` FUNCTION `generate_order_number` () RETURNS VARCHAR(20) CHARSET utf8mb4 COLLATE utf8mb4_general_ci  BEGIN
+    DECLARE new_order_num VARCHAR(20);
+    SET new_order_num = CONCAT('ORD-', DATE_FORMAT(NOW(), '%Y%m%d-'), LPAD(FLOOR(RAND() * 10000), 4, '0'));
+    RETURN new_order_num;
+END$$
+
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activities`
+--
+
+CREATE TABLE `activities` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `user_name` varchar(100) DEFAULT NULL,
+  `activity` varchar(255) NOT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `activities`
+--
+
+INSERT INTO `activities` (`id`, `user_id`, `user_name`, `activity`, `status`, `created_at`) VALUES
+(1, NULL, 'John Smith', 'New user registered', 'completed', '2026-01-22 12:31:55'),
+(2, NULL, 'Jane Doe', 'User role changed', 'pending', '2026-01-22 12:31:55'),
+(3, NULL, 'System', 'System backup', 'completed', '2026-01-22 12:31:55'),
+(4, NULL, 'John Smith', 'New user registered', 'completed', '2026-01-22 12:35:37'),
+(5, NULL, 'Jane Doe', 'User role changed', 'pending', '2026-01-22 12:35:37'),
+(6, NULL, 'System', 'System backup', 'completed', '2026-01-22 12:35:37'),
+(7, NULL, 'Robert Johnson', 'New service request submitted', 'pending', '2026-01-22 12:35:37'),
+(8, NULL, 'Sarah Wilson', 'Order #001 completed', 'completed', '2026-01-22 12:35:37');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `analytics_data`
+--
+
+CREATE TABLE `analytics_data` (
+  `id` int(11) NOT NULL,
+  `metric_date` date NOT NULL,
+  `metric_type` varchar(50) NOT NULL,
+  `shop_id` int(11) DEFAULT NULL,
+  `value` decimal(12,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `appointments`
+--
+
+CREATE TABLE `appointments` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `staff_id` int(11) DEFAULT NULL,
+  `appointment_date` date NOT NULL,
+  `appointment_time` time NOT NULL,
+  `service_type` varchar(100) DEFAULT NULL,
+  `status` enum('scheduled','completed','cancelled') DEFAULT 'scheduled',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `appointments`
+--
+
+INSERT INTO `appointments` (`id`, `customer_id`, `staff_id`, `appointment_date`, `appointment_time`, `service_type`, `status`, `notes`, `created_at`) VALUES
+(1, 3, 2, '2026-01-22', '10:30:00', 'Consultation', 'scheduled', NULL, '2026-01-22 12:35:37'),
+(2, 3, 2, '2026-01-24', '14:00:00', 'Design Review', 'scheduled', NULL, '2026-01-22 12:35:37');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `budgets`
+--
+
+CREATE TABLE `budgets` (
+  `id` int(11) NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `budget_year` year(4) NOT NULL,
+  `budget_month` int(11) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `allocated_amount` decimal(12,2) NOT NULL,
+  `spent_amount` decimal(12,2) DEFAULT 0.00,
+  `remaining_amount` decimal(12,2) GENERATED ALWAYS AS (`allocated_amount` - `spent_amount`) STORED,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `chats`
+--
+
+CREATE TABLE `chats` (
+  `id` int(11) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `receiver_id` int(11) NOT NULL,
+  `message` text NOT NULL,
+  `read_status` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `design_approvals`
+--
+
+CREATE TABLE `design_approvals` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `service_provider_id` int(11) NOT NULL,
+  `design_file` varchar(255) DEFAULT NULL,
+  `customer_notes` text DEFAULT NULL,
+  `provider_notes` text DEFAULT NULL,
+  `status` enum('pending','approved','rejected','revision') DEFAULT 'pending',
+  `revision_count` int(11) DEFAULT 0,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `dss_configurations`
+--
+
+CREATE TABLE `dss_configurations` (
+  `id` int(11) NOT NULL,
+  `config_key` varchar(100) NOT NULL,
+  `config_value` text DEFAULT NULL,
+  `config_type` enum('system','shop','user') DEFAULT 'system',
+  `description` text DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `dss_configurations`
+--
+
+INSERT INTO `dss_configurations` (`id`, `config_key`, `config_value`, `config_type`, `description`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, 'order_acceptance_threshold', '0.7', 'system', 'Minimum rating threshold for auto-order acceptance', NULL, '2026-01-22 12:44:22', '2026-01-22 12:44:22'),
+(2, 'employee_performance_weight', '{\"quality\":0.4,\"speed\":0.3,\"customer_feedback\":0.3}', 'system', 'Weight for employee performance calculation', NULL, '2026-01-22 12:44:22', '2026-01-22 12:44:22'),
+(3, 'shop_rating_algorithm', 'weighted_average', 'system', 'Algorithm for calculating shop ratings', NULL, '2026-01-22 12:44:22', '2026-01-22 12:44:22'),
+(4, 'auto_schedule_enabled', 'true', 'system', 'Enable automatic job scheduling', NULL, '2026-01-22 12:44:22', '2026-01-22 12:44:22'),
+(5, 'notification_days_before_due', '2', 'system', 'Days before due date to send notifications', NULL, '2026-01-22 12:44:22', '2026-01-22 12:44:22');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employees`
+--
+
+CREATE TABLE `employees` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `position` varchar(100) DEFAULT NULL,
+  `salary` decimal(12,2) DEFAULT NULL,
+  `hire_date` date DEFAULT NULL,
+  `status` enum('active','inactive','on_leave') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `financial_transactions`
+--
+
+CREATE TABLE `financial_transactions` (
+  `id` int(11) NOT NULL,
+  `type` enum('income','expense') NOT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `description` text DEFAULT NULL,
+  `reference_id` int(11) DEFAULT NULL,
+  `transaction_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_schedule`
+--
+
+CREATE TABLE `job_schedule` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `scheduled_date` date NOT NULL,
+  `scheduled_time` time DEFAULT NULL,
+  `task_description` text DEFAULT NULL,
+  `status` enum('scheduled','in_progress','completed') DEFAULT 'scheduled',
+  `actual_start` datetime DEFAULT NULL,
+  `actual_end` datetime DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `material_orders`
+--
+
+CREATE TABLE `material_orders` (
+  `id` int(11) NOT NULL,
+  `material_id` int(11) NOT NULL,
+  `quantity` decimal(10,2) NOT NULL,
+  `order_date` date NOT NULL,
+  `expected_delivery` date DEFAULT NULL,
+  `actual_delivery` date DEFAULT NULL,
+  `status` enum('ordered','received','cancelled') DEFAULT 'ordered',
+  `unit_cost` decimal(10,2) DEFAULT NULL,
+  `total_cost` decimal(12,2) DEFAULT NULL,
+  `supplier` varchar(200) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `orders`
+--
+
+CREATE TABLE `orders` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `service_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('pending','processing','completed','cancelled') DEFAULT 'pending',
+  `assigned_to` int(11) DEFAULT NULL,
+  `price` decimal(10,2) DEFAULT NULL,
+  `progress` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `design_file` varchar(255) DEFAULT NULL,
+  `design_approved` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`id`, `customer_id`, `service_type`, `description`, `status`, `assigned_to`, `price`, `progress`, `created_at`, `updated_at`, `design_file`, `design_approved`) VALUES
+(1, 3, 'Custom Logo Embroidery', NULL, 'processing', NULL, NULL, 75, '2026-01-22 12:31:55', '2026-01-22 12:31:55', NULL, 0),
+(2, 3, 'Name Patch Embroidery', NULL, 'completed', NULL, NULL, 100, '2026-01-22 12:31:55', '2026-01-22 12:31:55', NULL, 0),
+(3, 3, 'Custom Logo Embroidery', NULL, 'processing', NULL, NULL, 75, '2026-01-22 12:35:37', '2026-01-22 12:35:37', NULL, 0),
+(4, 3, 'Name Patch Embroidery', NULL, 'completed', NULL, NULL, 100, '2026-01-22 12:35:37', '2026-01-22 12:35:37', NULL, 0),
+(5, 3, 'Uniform Design', NULL, 'pending', NULL, NULL, 0, '2026-01-22 12:35:37', '2026-01-22 12:35:37', NULL, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_photos`
+--
+
+CREATE TABLE `order_photos` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `photo_url` varchar(255) NOT NULL,
+  `caption` varchar(255) DEFAULT NULL,
+  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `otp_verifications`
+--
+
+CREATE TABLE `otp_verifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `otp_code` varchar(10) NOT NULL,
+  `type` enum('registration','reset','upgrade') NOT NULL,
+  `expires_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `verified` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payroll`
+--
+
+CREATE TABLE `payroll` (
+  `id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `pay_period_start` date NOT NULL,
+  `pay_period_end` date NOT NULL,
+  `basic_salary` decimal(12,2) DEFAULT NULL,
+  `allowances` decimal(12,2) DEFAULT NULL,
+  `deductions` decimal(12,2) DEFAULT NULL,
+  `net_salary` decimal(12,2) DEFAULT NULL,
+  `status` enum('pending','paid','cancelled') DEFAULT 'pending',
+  `paid_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `raw_materials`
+--
+
+CREATE TABLE `raw_materials` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `category` varchar(50) DEFAULT NULL,
+  `unit` varchar(20) DEFAULT NULL,
+  `current_stock` decimal(10,2) DEFAULT 0.00,
+  `min_stock_level` decimal(10,2) DEFAULT NULL,
+  `max_stock_level` decimal(10,2) DEFAULT NULL,
+  `unit_cost` decimal(10,2) DEFAULT NULL,
+  `supplier` varchar(200) DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `services`
+--
+
+CREATE TABLE `services` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `price` decimal(10,2) DEFAULT NULL,
+  `category` varchar(50) DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `services`
+--
+
+INSERT INTO `services` (`id`, `name`, `description`, `price`, `category`, `status`, `created_at`) VALUES
+(1, 'Custom T-shirt Embroidery', 'Custom embroidery on t-shirts with your design', 25.00, 'custom_apparel', 'active', '2026-01-22 12:31:55'),
+(2, 'Logo Embroidery', 'Company logo embroidery on caps and uniforms', 45.00, 'logo_embroidery', 'active', '2026-01-22 12:31:55'),
+(3, 'Personalized Gift', 'Custom embroidered gifts and souvenirs', 35.00, 'personalized_gifts', 'active', '2026-01-22 12:31:55'),
+(4, 'Uniform Embroidery', 'Name and badge embroidery on uniforms', 30.00, 'custom_apparel', 'active', '2026-01-22 12:31:55'),
+(5, 'Custom T-shirt Embroidery', 'Custom embroidery on t-shirts with your design', 25.00, 'custom_apparel', 'active', '2026-01-22 12:35:36'),
+(6, 'Logo Embroidery', 'Company logo embroidery on caps and uniforms', 45.00, 'logo_embroidery', 'active', '2026-01-22 12:35:36'),
+(7, 'Personalized Gift', 'Custom embroidered gifts and souvenirs', 35.00, 'personalized_gifts', 'active', '2026-01-22 12:35:36'),
+(8, 'Uniform Embroidery', 'Name and badge embroidery on uniforms', 30.00, 'custom_apparel', 'active', '2026-01-22 12:35:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `service_providers`
+--
+
+CREATE TABLE `service_providers` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `business_name` varchar(200) NOT NULL,
+  `business_permit` varchar(100) DEFAULT NULL,
+  `permit_file` varchar(255) DEFAULT NULL,
+  `status` enum('pending','verified','rejected') DEFAULT 'pending',
+  `verified_at` timestamp NULL DEFAULT NULL,
+  `verified_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `service_requests`
+--
+
+CREATE TABLE `service_requests` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `service_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('pending','in_progress','completed','cancelled') DEFAULT 'pending',
+  `assigned_to` int(11) DEFAULT NULL,
+  `priority` enum('low','medium','high') DEFAULT 'medium',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `service_requests`
+--
+
+INSERT INTO `service_requests` (`id`, `customer_id`, `service_type`, `description`, `status`, `assigned_to`, `priority`, `created_at`, `updated_at`) VALUES
+(1, 3, 'Logo Design', 'Need company logo embroidery on 50 caps', 'pending', NULL, 'high', '2026-01-22 12:35:10', '2026-01-22 12:35:10'),
+(2, 3, 'Uniform Patch', 'Name patches for employee uniforms', 'pending', NULL, 'medium', '2026-01-22 12:35:10', '2026-01-22 12:35:10'),
+(3, 3, 'Logo Design', 'Need company logo embroidery on 50 caps', 'pending', NULL, 'high', '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
+(4, 3, 'Uniform Patch', 'Name patches for employee uniforms', 'pending', NULL, 'medium', '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
+(5, 3, 'Custom Gift', 'Embroidered towels for company anniversary', 'pending', NULL, 'low', '2026-01-22 12:35:37', '2026-01-22 12:35:37');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shops`
+--
+
+CREATE TABLE `shops` (
+  `id` int(11) NOT NULL,
+  `owner_id` int(11) NOT NULL,
+  `shop_name` varchar(200) NOT NULL,
+  `shop_description` text DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `business_permit` varchar(100) DEFAULT NULL,
+  `permit_file` varchar(255) DEFAULT NULL,
+  `logo` varchar(255) DEFAULT NULL,
+  `status` enum('pending','active','suspended') DEFAULT 'pending',
+  `rating` decimal(3,2) DEFAULT 0.00,
+  `total_orders` int(11) DEFAULT 0,
+  `total_earnings` decimal(12,2) DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shop_employees`
+--
+
+CREATE TABLE `shop_employees` (
+  `id` int(11) NOT NULL,
+  `shop_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `position` varchar(100) DEFAULT NULL,
+  `permissions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`permissions`)),
+  `hired_date` date DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `fullname` varchar(100) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `role` enum('sys_admin','owner','employee','client') DEFAULT 'client',
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `email_verified` tinyint(1) DEFAULT 0,
+  `phone` varchar(20) DEFAULT NULL,
+  `phone_verified` tinyint(1) DEFAULT 0,
+  `last_login` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `fullname`, `email`, `password`, `role`, `status`, `created_at`, `email_verified`, `phone`, `phone_verified`, `last_login`) VALUES
+(1, 'Administrator', 'admin@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'sys_admin', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-28 17:37:48'),
+(2, 'Staff Member', 'staff@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-27 21:00:20'),
+(3, 'Customer', 'customer@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'client', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-27 20:53:59'),
+(4, 'kim', 'kim@gmail.com', '$2y$12$/6/fhAh8USgtPJsGpB9IAea3NzCCjVSlC7KMiflw9wkKLeiS1f7B2', 'client', 'active', '2026-01-20 12:22:00', 0, NULL, 0, NULL);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `activities`
+--
+ALTER TABLE `activities`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `analytics_data`
+--
+ALTER TABLE `analytics_data`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `shop_id` (`shop_id`),
+  ADD KEY `idx_metric_date` (`metric_date`),
+  ADD KEY `idx_metric_type` (`metric_type`);
+
+--
+-- Indexes for table `appointments`
+--
+ALTER TABLE `appointments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_id` (`customer_id`),
+  ADD KEY `staff_id` (`staff_id`);
+
+--
+-- Indexes for table `budgets`
+--
+ALTER TABLE `budgets`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `chats`
+--
+ALTER TABLE `chats`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `sender_id` (`sender_id`),
+  ADD KEY `receiver_id` (`receiver_id`);
+
+--
+-- Indexes for table `design_approvals`
+--
+ALTER TABLE `design_approvals`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `order_id` (`order_id`),
+  ADD KEY `service_provider_id` (`service_provider_id`);
+
+--
+-- Indexes for table `dss_configurations`
+--
+ALTER TABLE `dss_configurations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `config_key` (`config_key`),
+  ADD KEY `created_by` (`created_by`);
+
+--
+-- Indexes for table `employees`
+--
+ALTER TABLE `employees`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `financial_transactions`
+--
+ALTER TABLE `financial_transactions`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `job_schedule`
+--
+ALTER TABLE `job_schedule`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `order_id` (`order_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `material_orders`
+--
+ALTER TABLE `material_orders`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `material_id` (`material_id`);
+
+--
+-- Indexes for table `orders`
+--
+ALTER TABLE `orders`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_id` (`customer_id`),
+  ADD KEY `assigned_to` (`assigned_to`);
+
+--
+-- Indexes for table `order_photos`
+--
+ALTER TABLE `order_photos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `order_id` (`order_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `otp_verifications`
+--
+ALTER TABLE `otp_verifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `payroll`
+--
+ALTER TABLE `payroll`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `raw_materials`
+--
+ALTER TABLE `raw_materials`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `services`
+--
+ALTER TABLE `services`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `service_providers`
+--
+ALTER TABLE `service_providers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`),
+  ADD KEY `verified_by` (`verified_by`);
+
+--
+-- Indexes for table `service_requests`
+--
+ALTER TABLE `service_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_id` (`customer_id`),
+  ADD KEY `assigned_to` (`assigned_to`);
+
+--
+-- Indexes for table `shops`
+--
+ALTER TABLE `shops`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `owner_id` (`owner_id`);
+
+--
+-- Indexes for table `shop_employees`
+--
+ALTER TABLE `shop_employees`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`),
+  ADD KEY `shop_id` (`shop_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `activities`
+--
+ALTER TABLE `activities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `analytics_data`
+--
+ALTER TABLE `analytics_data`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `appointments`
+--
+ALTER TABLE `appointments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `budgets`
+--
+ALTER TABLE `budgets`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `chats`
+--
+ALTER TABLE `chats`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `design_approvals`
+--
+ALTER TABLE `design_approvals`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `dss_configurations`
+--
+ALTER TABLE `dss_configurations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `employees`
+--
+ALTER TABLE `employees`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `financial_transactions`
+--
+ALTER TABLE `financial_transactions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `job_schedule`
+--
+ALTER TABLE `job_schedule`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `material_orders`
+--
+ALTER TABLE `material_orders`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `orders`
+--
+ALTER TABLE `orders`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `order_photos`
+--
+ALTER TABLE `order_photos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `otp_verifications`
+--
+ALTER TABLE `otp_verifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payroll`
+--
+ALTER TABLE `payroll`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `raw_materials`
+--
+ALTER TABLE `raw_materials`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `services`
+--
+ALTER TABLE `services`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `service_providers`
+--
+ALTER TABLE `service_providers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `service_requests`
+--
+ALTER TABLE `service_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `shops`
+--
+ALTER TABLE `shops`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `shop_employees`
+--
+ALTER TABLE `shop_employees`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `analytics_data`
+--
+ALTER TABLE `analytics_data`
+  ADD CONSTRAINT `analytics_data_ibfk_1` FOREIGN KEY (`shop_id`) REFERENCES `shops` (`id`);
+
+--
+-- Constraints for table `appointments`
+--
+ALTER TABLE `appointments`
+  ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `appointments_ibfk_2` FOREIGN KEY (`staff_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `chats`
+--
+ALTER TABLE `chats`
+  ADD CONSTRAINT `chats_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `chats_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `design_approvals`
+--
+ALTER TABLE `design_approvals`
+  ADD CONSTRAINT `design_approvals_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
+  ADD CONSTRAINT `design_approvals_ibfk_2` FOREIGN KEY (`service_provider_id`) REFERENCES `service_providers` (`id`);
+
+--
+-- Constraints for table `dss_configurations`
+--
+ALTER TABLE `dss_configurations`
+  ADD CONSTRAINT `dss_configurations_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `employees`
+--
+ALTER TABLE `employees`
+  ADD CONSTRAINT `employees_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `job_schedule`
+--
+ALTER TABLE `job_schedule`
+  ADD CONSTRAINT `job_schedule_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
+  ADD CONSTRAINT `job_schedule_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `material_orders`
+--
+ALTER TABLE `material_orders`
+  ADD CONSTRAINT `material_orders_ibfk_1` FOREIGN KEY (`material_id`) REFERENCES `raw_materials` (`id`);
+
+--
+-- Constraints for table `orders`
+--
+ALTER TABLE `orders`
+  ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `order_photos`
+--
+ALTER TABLE `order_photos`
+  ADD CONSTRAINT `order_photos_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
+  ADD CONSTRAINT `order_photos_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `otp_verifications`
+--
+ALTER TABLE `otp_verifications`
+  ADD CONSTRAINT `otp_verifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `payroll`
+--
+ALTER TABLE `payroll`
+  ADD CONSTRAINT `payroll_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`);
+
+--
+-- Constraints for table `service_providers`
+--
+ALTER TABLE `service_providers`
+  ADD CONSTRAINT `service_providers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `service_providers_ibfk_2` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `service_requests`
+--
+ALTER TABLE `service_requests`
+  ADD CONSTRAINT `service_requests_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `service_requests_ibfk_2` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `shops`
+--
+ALTER TABLE `shops`
+  ADD CONSTRAINT `shops_ibfk_1` FOREIGN KEY (`owner_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `shop_employees`
+--
+ALTER TABLE `shop_employees`
+  ADD CONSTRAINT `shop_employees_ibfk_1` FOREIGN KEY (`shop_id`) REFERENCES `shops` (`id`),
+  ADD CONSTRAINT `shop_employees_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
