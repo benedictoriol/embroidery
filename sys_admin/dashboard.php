@@ -1,12 +1,8 @@
 <?php
 session_start();
 require_once '../config/db.php';
-
-// Check if user is sys_admin
-if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'sys_admin') {
-    header("Location: ../auth/login.php");
-    exit();
-}
+require_once 'partials.php';
+require_role('sys_admin');
 
 // Get system statistics - FIXED QUERIES
 $stats = $pdo->query("
@@ -204,39 +200,7 @@ $system_health = [
     </style>
 </head>
 <body>
-    <!-- Modern Navigation -->
-    <nav class="navbar">
-        <div class="container d-flex justify-between align-center">
-            <div class="d-flex align-center gap-4">
-                <a href="dashboard.php" class="navbar-brand">
-                    <i class="fas fa-cogs"></i>
-                    <span>System Admin</span>
-                </a>
-                <div class="d-flex gap-2">
-                    <span class="badge badge-primary">Online</span>
-                    <span class="text-muted">v2.1.0</span>
-                </div>
-            </div>
-            
-            <ul class="navbar-nav">
-                <li><a href="dashboard.php" class="nav-link active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="system_control.php" class="nav-link"><i class="fas fa-sliders-h"></i> Control</a></li>
-                <li><a href="member_approval.php" class="nav-link"><i class="fas fa-user-check"></i> Approvals</a></li>
-                <li><a href="analytics.php" class="nav-link"><i class="fas fa-chart-line"></i> Analytics</a></li>
-                <li class="dropdown">
-                    <a href="#" class="nav-link dropdown-toggle">
-                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($_SESSION['user']['fullname']); ?>
-                    </a>
-                    <div class="dropdown-menu">
-                        <a href="profile.php" class="dropdown-item"><i class="fas fa-user-cog"></i> Profile Settings</a>
-                        <a href="settings.php" class="dropdown-item"><i class="fas fa-cog"></i> System Settings</a>
-                        <div class="dropdown-divider"></div>
-                        <a href="../auth/logout.php" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </nav>
+<?php sys_admin_nav('dashboard'); ?>
 
     <div class="container">
         <!-- Dashboard Header -->
@@ -478,21 +442,7 @@ $system_health = [
     </div>
 
     <!-- Modern Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="d-flex justify-between align-center">
-                <div>
-                    <p class="mb-1">&copy; 2024 Embroidery Platform - System Admin Panel</p>
-                    <small class="text-muted">Last updated: <?php echo date('F j, Y, g:i a'); ?></small>
-                </div>
-                <div class="d-flex gap-3">
-                    <small class="text-muted">Server: <?php echo $_SERVER['SERVER_NAME']; ?></small>
-                    <small class="text-muted">PHP: <?php echo phpversion(); ?></small>
-                    <small class="text-muted">Users Online: 24</small>
-                </div>
-            </div>
-        </div>
-    </footer>
+<?php sys_admin_footer(); ?>
 
     <script>
         // Add subtle animations
