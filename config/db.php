@@ -20,26 +20,7 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
-// Function to check if user is logged in
-function is_logged_in() {
-    return isset($_SESSION['user']);
-}
-
-// Function to check user role
-function check_role($required_role) {
-    if(!isset($_SESSION['user']) || $_SESSION['user']['role'] != $required_role) {
-        return false;
-    }
-    return true;
-}
-
-// Redirect if not logged in or wrong role
-function require_role($role) {
-    if(!check_role($role)) {
-        header("Location: ../auth/login.php");
-        exit();
-    }
-}
+require_once __DIR__ . '/auth_functions.php';
 
 // Sanitize input
 function sanitize($input) {

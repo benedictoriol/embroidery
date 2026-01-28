@@ -14,8 +14,8 @@
     </div>
 
     <div class="nav-actions">
-        <a href="login.php" class="btn-outline">Sign In</a>
-        <a href="register.php" class="btn-solid">Sign Up</a>
+        <a href="auth/login.php" class="btn-outline">Sign In</a>
+        <a href="auth/register.php?type=client" class="btn-solid">Sign Up</a>
     </div>
 </nav>
 
@@ -31,7 +31,7 @@
     </p>
 
     <div class="hero-buttons">
-        <a href="register.php" class="btn-primary">Get Started</a>
+        <a href="auth/register.php?type=client" class="btn-primary">Get Started</a>
         <a href="#about" class="btn-secondary">Learn More</a>
     </div>
 </header>

@@ -1,53 +1,38 @@
 <?php
 session_start();
-require_once '../config/db.php';
+
+require_once '../config/database.php';
+require_once '../config/functions.php';
+require_once '../config/auth_functions.php'; // <-- IMPORTANT: contains redirect_based_on_role()
 
 $error = '';
-$success = '';
 
-
-
-if(isset($_SESSION['user'])) {
-    redirect_based_on_role($_SESSION['user']['role']);
-}
-
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = sanitize($_POST['email']);
     $password = $_POST['password'];
-    
+
     try {
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? AND status = 'active'");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-        
-        if($user && password_verify($password, $user['password'])) {
+
+        if ($user && password_verify($password, $user['password'])) {
             unset($user['password']);
             $_SESSION['user'] = $user;
-            
+
             $update_stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
             $update_stmt->execute([$user['id']]);
-            
-            redirect_based_on_role($user['role']);
-            
+
+            redirect_based_on_role($user['role']); // now comes from auth_functions.php
         } else {
             $error = "Invalid email or password!";
         }
-    } catch(PDOException $e) {
+    } catch (PDOException $e) {
         $error = "Login failed: " . $e->getMessage();
     }
 }
-
-function redirect_based_on_role($role) {
-    switch($role) {
-        case 'sys_admin': header("Location: ../sys_admin/dashboard.php"); break;
-        case 'owner': header("Location: ../owner/dashboard.php"); break;
-        case 'employee': header("Location: ../employee/dashboard.php"); break;
-        case 'client': header("Location: ../client/dashboard.php"); break;
-        default: header("Location: ../index.php");
-    }
-    exit();
-}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,6 +87,7 @@ function redirect_based_on_role($role) {
             margin-bottom: 1rem;
             background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
