@@ -19,14 +19,20 @@ if(!$employee) {
 }
 
 $jobs_stmt = $pdo->prepare("
-    SELECT o.*, u.fullname as client_name, s.shop_name
+    SELECT 
+        o.*,
+        u.fullname as client_name,
+        s.shop_name,
+        COALESCE(js.scheduled_date, o.scheduled_date) as schedule_date,
+        js.scheduled_time as schedule_time
     FROM orders o 
     JOIN users u ON o.client_id = u.id 
     JOIN shops s ON o.shop_id = s.id
-    WHERE o.assigned_to = ?
-    ORDER BY o.scheduled_date ASC, o.created_at DESC
+    LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+    WHERE (o.assigned_to = ? OR js.employee_id = ?)
+    ORDER BY schedule_date ASC, js.scheduled_time ASC, o.created_at DESC
 ");
-$jobs_stmt->execute([$employee_id]);
+$jobs_stmt->execute([$employee_id, $employee_id, $employee_id]);
 $assigned_jobs = $jobs_stmt->fetchAll();
 
 function job_status_badge($status) {
@@ -146,8 +152,13 @@ function job_status_badge($status) {
 
                     <div class="job-meta">
                         <div><i class="fas fa-store"></i> <?php echo htmlspecialchars($job['shop_name']); ?></div>
-                        <?php if(!empty($job['scheduled_date'])): ?>
-                            <div><i class="fas fa-calendar"></i> Due: <?php echo date('M d, Y', strtotime($job['scheduled_date'])); ?></div>
+                        <?php if(!empty($job['schedule_date'])): ?>
+                            <div>
+                                <i class="fas fa-calendar"></i> Scheduled: <?php echo date('M d, Y', strtotime($job['schedule_date'])); ?>
+                                <?php if(!empty($job['schedule_time'])): ?>
+                                    <span class="ml-1"><i class="fas fa-clock"></i> <?php echo date('h:i A', strtotime($job['schedule_time'])); ?></span>
+                                <?php endif; ?>
+                            </div>
                         <?php endif; ?>
                         <?php if(!empty($job['design_description'])): ?>
                             <div><i class="fas fa-clipboard"></i> <?php echo htmlspecialchars($job['design_description']); ?></div>

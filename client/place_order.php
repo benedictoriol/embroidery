@@ -4,6 +4,7 @@ require_once '../config/db.php';
 require_role('client');
 
 $client_id = $_SESSION['user']['id'];
+$unread_notifications = fetch_unread_notification_count($pdo, $client_id);
 $error = '';
 $success = '';
 
@@ -70,6 +71,15 @@ if(isset($_POST['place_order'])) {
         // Update shop statistics
         $shop_stmt = $pdo->prepare("UPDATE shops SET total_orders = total_orders + 1 WHERE id = ?");
         $shop_stmt->execute([$shop_id]);
+        
+        create_notification(
+            $pdo,
+            $client_id,
+            $order_id,
+            'Order submitted',
+            'Your order #' . $order_number . ' has been submitted and is awaiting shop acceptance.',
+            'info'
+        );
         
         $pdo->commit();
         
@@ -138,6 +148,11 @@ if(isset($_POST['place_order'])) {
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
                 <li><a href="place_order.php" class="nav-link active">Place Order</a></li>
+                <li><a href="notifications.php" class="nav-link">Notifications
+                    <?php if($unread_notifications > 0): ?>
+                        <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
+                    <?php endif; ?>
+                </a></li>
                 <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
             </ul>
         </div>

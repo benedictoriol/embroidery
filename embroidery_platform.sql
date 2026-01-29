@@ -65,6 +65,42 @@ INSERT INTO `activities` (`id`, `user_id`, `user_name`, `activity`, `status`, `c
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `audit_logs`
+--
+
+CREATE TABLE `audit_logs` (
+  `id` int(11) NOT NULL,
+  `actor_id` int(11) DEFAULT NULL,
+  `actor_role` varchar(50) DEFAULT NULL,
+  `action` varchar(150) NOT NULL,
+  `entity_type` varchar(100) NOT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `old_values` text DEFAULT NULL,
+  `new_values` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `id` int(11) NOT NULL,
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text DEFAULT NULL,
+  `updated_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+
+--
 -- Table structure for table `analytics_data`
 --
 
@@ -284,6 +320,14 @@ CREATE TABLE `orders` (
   `design_file` varchar(255) DEFAULT NULL,
   `design_approved` tinyint(1) DEFAULT 0,
   `rating` tinyint(1) DEFAULT NULL,
+  `rating_title` varchar(150) DEFAULT NULL,
+  `rating_comment` text DEFAULT NULL,
+  `rating_submitted_at` datetime DEFAULT NULL,
+  `revision_count` int(11) DEFAULT 0,
+  `revision_notes` text DEFAULT NULL,
+  `revision_requested_at` datetime DEFAULT NULL,
+  `cancellation_reason` text DEFAULT NULL,
+  `cancelled_at` datetime DEFAULT NULL,
   `completed_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -293,12 +337,28 @@ CREATE TABLE `orders` (
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`id`, `order_number`, `client_id`, `shop_id`, `service_type`, `design_description`, `quantity`, `price`, `client_notes`, `status`, `assigned_to`, `progress`, `scheduled_date`, `shop_notes`, `design_file`, `design_approved`, `rating`, `completed_at`, `created_at`, `updated_at`) VALUES
-(1, 'ORD-20260122-ABC123', 3, 1, 'Custom Logo Embroidery', 'Logo for company uniforms', 50, 2500.00, 'Please match our brand colors.', 'in_progress', NULL, 75, '2026-01-28', NULL, NULL, 0, NULL, NULL, '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
-(2, 'ORD-20260122-DEF456', 3, 1, 'Name Patch Embroidery', 'Name patches for employees', 25, 1200.00, 'Include last names only.', 'completed', NULL, 100, '2026-01-27', 'Completed successfully.', NULL, 0, 5, '2026-01-28 10:00:00', '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
-(3, 'ORD-20260122-GHI789', 3, 1, 'Custom Logo Embroidery', 'Cap embroidery', 30, 900.00, NULL, 'accepted', NULL, 20, '2026-01-29', NULL, NULL, 0, NULL, NULL, '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
-(4, 'ORD-20260122-JKL012', 3, 1, 'Name Patch Embroidery', 'Uniform patches', 10, 300.00, NULL, 'completed', NULL, 100, '2026-01-26', 'Delivered to client.', NULL, 0, 4, '2026-01-27 09:30:00', '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
-(5, 'ORD-20260122-MNO345', 3, 1, 'Uniform Design', 'Seasonal uniform design', 15, 1500.00, 'Need before end of month.', 'pending', NULL, 0, '2026-02-02', NULL, NULL, 0, NULL, NULL, '2026-01-22 12:35:37', '2026-01-22 12:35:37');
+INSERT INTO `orders` (`id`, `order_number`, `client_id`, `shop_id`, `service_type`, `design_description`, `quantity`, `price`, `client_notes`, `status`, `assigned_to`, `progress`, `scheduled_date`, `shop_notes`, `design_file`, `design_approved`, `rating`, `rating_title`, `rating_comment`, `rating_submitted_at`, `revision_count`, `revision_notes`, `revision_requested_at`, `cancellation_reason`, `cancelled_at`, `completed_at`, `created_at`, `updated_at`) VALUES
+(1, 'ORD-20260122-ABC123', 3, 1, 'Custom Logo Embroidery', 'Logo for company uniforms', 50, 2500.00, 'Please match our brand colors.', 'in_progress', NULL, 75, '2026-01-28', NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
+(2, 'ORD-20260122-DEF456', 3, 1, 'Name Patch Embroidery', 'Name patches for employees', 25, 1200.00, 'Include last names only.', 'completed', NULL, 100, '2026-01-27', 'Completed successfully.', NULL, 0, 5, 'Clean finish', 'Great quality, stitches are consistent.', '2026-01-28 10:05:00', 0, NULL, NULL, NULL, NULL, '2026-01-28 10:00:00', '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
+(3, 'ORD-20260122-GHI789', 3, 1, 'Custom Logo Embroidery', 'Cap embroidery', 30, 900.00, NULL, 'accepted', NULL, 20, '2026-01-29', NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
+(4, 'ORD-20260122-JKL012', 3, 1, 'Name Patch Embroidery', 'Uniform patches', 10, 300.00, NULL, 'completed', NULL, 100, '2026-01-26', 'Delivered to client.', NULL, 0, 4, 'Quick turnaround', 'Fast delivery and accurate sizing.', '2026-01-27 10:00:00', 0, NULL, NULL, NULL, NULL, '2026-01-27 09:30:00', '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
+(5, 'ORD-20260122-MNO345', 3, 1, 'Uniform Design', 'Seasonal uniform design', 15, 1500.00, 'Need before end of month.', 'pending', NULL, 0, '2026-02-02', NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:35:37', '2026-01-22 12:35:37');
+
+-- --------------------------------------------------------
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `title` varchar(150) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('info','success','warning','danger') DEFAULT 'info',
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -316,6 +376,23 @@ CREATE TABLE `order_photos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+
+--
+-- Table structure for table `order_status_history`
+--
+
+CREATE TABLE `order_status_history` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `employee_id` int(11) DEFAULT NULL,
+  `status` enum('pending','accepted','in_progress','completed','cancelled') NOT NULL,
+  `progress` int(11) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
 
 --
 -- Table structure for table `otp_verifications`
@@ -540,6 +617,17 @@ ALTER TABLE `activities`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `actor_id` (`actor_id`),
+  ADD KEY `entity_type` (`entity_type`),
+  ADD KEY `entity_id` (`entity_id`),
+  ADD KEY `action` (`action`);
+
+
+--
 -- Indexes for table `analytics_data`
 --
 ALTER TABLE `analytics_data`
@@ -547,6 +635,14 @@ ALTER TABLE `analytics_data`
   ADD KEY `shop_id` (`shop_id`),
   ADD KEY `idx_metric_date` (`metric_date`),
   ADD KEY `idx_metric_type` (`metric_type`);
+
+--
+-- Indexes for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `setting_key` (`setting_key`),
+  ADD KEY `updated_by` (`updated_by`);
 
 --
 -- Indexes for table `appointments`
@@ -632,6 +728,23 @@ ALTER TABLE `order_photos`
   ADD KEY `employee_id` (`employee_id`);
 
 --
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `order_id` (`order_id`);
+
+
+--
+-- Indexes for table `order_status_history`
+--
+ALTER TABLE `order_status_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `order_id` (`order_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
 -- Indexes for table `otp_verifications`
 --
 ALTER TABLE `otp_verifications`
@@ -706,10 +819,24 @@ ALTER TABLE `activities`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
+-- AUTO_INCREMENT for table `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+
+--
 -- AUTO_INCREMENT for table `analytics_data`
 --
 ALTER TABLE `analytics_data`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 
 --
 -- AUTO_INCREMENT for table `appointments`
@@ -776,6 +903,20 @@ ALTER TABLE `orders`
 --
 ALTER TABLE `order_photos`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+
+--
+-- AUTO_INCREMENT for table `order_status_history`
+--
+ALTER TABLE `order_status_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 
 --
 -- AUTO_INCREMENT for table `otp_verifications`
@@ -901,6 +1042,20 @@ ALTER TABLE `orders`
 ALTER TABLE `order_photos`
   ADD CONSTRAINT `order_photos_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
   ADD CONSTRAINT `order_photos_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`);
+
+--
+-- Constraints for table `order_status_history`
+--
+ALTER TABLE `order_status_history`
+  ADD CONSTRAINT `order_status_history_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
+  ADD CONSTRAINT `order_status_history_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `otp_verifications`

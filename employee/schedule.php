@@ -19,14 +19,23 @@ if(!$employee) {
 }
 
 $schedule_stmt = $pdo->prepare("
-    SELECT js.*, o.order_number, o.service_type, u.fullname as client_name
-    FROM job_schedule js
-    JOIN orders o ON js.order_id = o.id
+    SELECT 
+        o.id as order_id,
+        o.order_number,
+        o.service_type,
+        u.fullname as client_name,
+        COALESCE(js.scheduled_date, o.scheduled_date) as schedule_date,
+        js.scheduled_time as schedule_time,
+        COALESCE(js.status, o.status) as schedule_status,
+        js.task_description
+    FROM orders o
     JOIN users u ON o.client_id = u.id
-    WHERE js.employee_id = ?
-    ORDER BY js.scheduled_date ASC, js.scheduled_time ASC
+    LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+    WHERE (o.assigned_to = ? OR js.employee_id = ?)
+      AND COALESCE(js.scheduled_date, o.scheduled_date) IS NOT NULL
+    ORDER BY schedule_date ASC, schedule_time ASC
 ");
-$schedule_stmt->execute([$employee_id]);
+$schedule_stmt->execute([$employee_id, $employee_id, $employee_id]);
 $schedule = $schedule_stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -102,11 +111,15 @@ $schedule = $schedule_stmt->fetchAll();
                         </div>
                         <div class="text-right">
                             <div class="schedule-date">
-                                <?php echo date('M d, Y', strtotime($item['scheduled_date'])); ?>
+                                <?php echo date('M d, Y', strtotime($item['schedule_date'])); ?>
                             </div>
-                            <?php if(!empty($item['scheduled_time'])): ?>
+                            <?php if(!empty($item['schedule_time'])): ?>
                                 <div class="text-muted">
-                                    <i class="fas fa-clock"></i> <?php echo date('h:i A', strtotime($item['scheduled_time'])); ?>
+                                    <i class="fas fa-clock"></i> <?php echo date('h:i A', strtotime($item['schedule_time'])); ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-muted">
+                                    <i class="fas fa-clock"></i> Time TBD
                                 </div>
                             <?php endif; ?>
                         </div>

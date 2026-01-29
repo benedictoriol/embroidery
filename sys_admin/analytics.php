@@ -66,6 +66,49 @@ $topServices = $pdo->query("
     ORDER BY total DESC
     LIMIT 5
 ")->fetchAll();
+
+$orderLifecycle = $pdo->query("
+    SELECT
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+        AVG(CASE WHEN status = 'completed' AND completed_at IS NOT NULL THEN TIMESTAMPDIFF(HOUR, created_at, completed_at) END) as avg_completion_hours
+    FROM orders
+")->fetch();
+
+$shopPerformance = $pdo->query("
+    SELECT
+        s.id,
+        s.shop_name,
+        COUNT(o.id) as total_orders,
+        SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
+        SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price ELSE 0 END), 0) as revenue,
+        AVG(CASE WHEN o.status = 'completed' AND o.completed_at IS NOT NULL THEN TIMESTAMPDIFF(HOUR, o.created_at, o.completed_at) END) as avg_completion_hours
+    FROM shops s
+    LEFT JOIN orders o ON s.id = o.shop_id
+    GROUP BY s.id, s.shop_name
+    ORDER BY revenue DESC, completed_orders DESC
+    LIMIT 5
+")->fetchAll();
+
+$employeeProductivity = $pdo->query("
+    SELECT
+        u.id,
+        u.fullname,
+        COUNT(o.id) as completed_orders,
+        AVG(CASE WHEN o.completed_at IS NOT NULL THEN TIMESTAMPDIFF(HOUR, o.created_at, o.completed_at) END) as avg_completion_hours
+    FROM orders o
+    JOIN users u ON o.assigned_to = u.id
+    WHERE o.status = 'completed'
+    GROUP BY u.id, u.fullname
+    ORDER BY completed_orders DESC
+    LIMIT 5
+")->fetchAll();
+
+$totalOrders = (int) ($orderLifecycle['total_orders'] ?? 0);
+$cancelledOrders = (int) ($orderLifecycle['cancelled_orders'] ?? 0);
+$cancellationRate = $totalOrders > 0 ? ($cancelledOrders / $totalOrders) * 100 : 0;
+$avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float) $orderLifecycle['avg_completion_hours'] : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -95,6 +138,15 @@ $topServices = $pdo->query("
         .data-card {
             grid-column: span 4;
         }
+
+        .half-card {
+            grid-column: span 6;
+        }
+
+        .full-card {
+            grid-column: span 12;
+        }
+
 
         .chart-bars {
             display: grid;
@@ -130,6 +182,18 @@ $topServices = $pdo->query("
 
         .metric-row:last-child {
             border-bottom: none;
+        }
+
+        .analytics-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .analytics-table th,
+        .analytics-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-100);
+            text-align: left;
         }
     </style>
 </head>
@@ -233,6 +297,87 @@ $topServices = $pdo->query("
                             <strong><?php echo (int) $service['total']; ?></strong>
                         </div>
                     <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+            
+            <div class="card data-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-route text-primary"></i> Order Lifecycle</h3>
+                    <p class="text-muted">Completion time and cancellation insights.</p>
+                </div>
+                <div>
+                    <div class="metric-row">
+                        <span>Avg. Completion Time</span>
+                        <strong><?php echo number_format($avgCompletionHours, 1); ?> hrs</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Cancellation Rate</span>
+                        <strong><?php echo number_format($cancellationRate, 1); ?>%</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Cancelled Orders</span>
+                        <strong><?php echo number_format($cancelledOrders); ?></strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card half-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-store text-success"></i> Top Shop Performance</h3>
+                    <p class="text-muted">Revenue and completion rate by shop.</p>
+                </div>
+                <?php if (empty($shopPerformance)): ?>
+                    <p class="text-muted">No shop performance data yet.</p>
+                <?php else: ?>
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Shop</th>
+                                <th>Orders</th>
+                                <th>Completed</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($shopPerformance as $shop): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($shop['shop_name']); ?></td>
+                                    <td><?php echo number_format($shop['total_orders']); ?></td>
+                                    <td><?php echo number_format($shop['completed_orders']); ?></td>
+                                    <td>₱<?php echo number_format($shop['revenue'], 2); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+
+            <div class="card half-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-clock text-info"></i> Employee Productivity</h3>
+                    <p class="text-muted">Top employees by completed orders.</p>
+                </div>
+                <?php if (empty($employeeProductivity)): ?>
+                    <p class="text-muted">No employee productivity data yet.</p>
+                <?php else: ?>
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Completed</th>
+                                <th>Avg. Completion (hrs)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($employeeProductivity as $employee): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($employee['fullname']); ?></td>
+                                    <td><?php echo number_format($employee['completed_orders']); ?></td>
+                                    <td><?php echo $employee['avg_completion_hours'] !== null ? number_format($employee['avg_completion_hours'], 1) : '—'; ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 <?php endif; ?>
             </div>
         </div>

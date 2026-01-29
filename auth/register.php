@@ -5,8 +5,23 @@ require_once '../config/db.php';
 $error = '';
 $success = '';
 $type = isset($_GET['type']) ? $_GET['type'] : 'client';
+$registrationsOpen = true;
+
+$settingsStmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'new_registrations' LIMIT 1");
+$settingsStmt->execute();
+$registrationsValue = $settingsStmt->fetchColumn();
+if ($registrationsValue !== false) {
+    $registrationsOpen = filter_var($registrationsValue, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    if ($registrationsOpen === null) {
+        $registrationsOpen = (bool) $registrationsValue;
+    }
+}
+$registrationDisabled = !$registrationsOpen;
 
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if ($registrationDisabled) {
+        $error = "Registrations are currently disabled by system administrators.";
+    } else {
     $fullname = sanitize($_POST['fullname']);
     $email = sanitize($_POST['email']);
     $password = $_POST['password'];
@@ -63,6 +78,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error = "Registration failed: " . $e->getMessage();
         }
     }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -102,6 +118,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
                 
                 <?php else: ?>
+                    <?php if ($registrationDisabled): ?>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-ban"></i> Registrations are currently disabled by system administrators.
+                        </div>
+                    <?php else: ?>
                 <form method="POST">
                     <input type="hidden" name="type" value="<?php echo $type; ?>">
                     
@@ -145,6 +166,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <i class="fas fa-user-plus"></i> Create Account
                     </button>
                 </form>
+                    <?php endif; ?>
             <?php endif; ?>
             
             <div class="auth-footer">

@@ -4,18 +4,37 @@ require_once '../config/db.php';
 require_role('client');
 
 $client_id = $_SESSION['user']['id'];
+$unread_notifications = fetch_unread_notification_count($pdo, $client_id);
 $error = '';
 $success = '';
+$blocked_terms = ['spam', 'scam', 'fraud', 'abuse', 'offensive'];
+
+function contains_blocked_terms(string $text, array $blocked_terms): bool {
+    foreach($blocked_terms as $term) {
+        if($term !== '' && stripos($text, $term) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
 
 if(isset($_POST['submit_rating'])) {
     $order_id = $_POST['order_id'] ?? '';
     $rating = (int)($_POST['rating'] ?? 0);
+    $rating_title = sanitize($_POST['rating_title'] ?? '');
+    $rating_comment = sanitize($_POST['rating_comment'] ?? '');
 
     if($rating < 1 || $rating > 5) {
         $error = 'Please select a rating between 1 and 5.';
+        } elseif($rating_title !== '' && mb_strlen($rating_title) < 3) {
+        $error = 'Review titles should be at least 3 characters long.';
+    } elseif($rating_comment !== '' && mb_strlen($rating_comment) < 10) {
+        $error = 'Review comments should be at least 10 characters long.';
+    } elseif(contains_blocked_terms($rating_title, $blocked_terms) || contains_blocked_terms($rating_comment, $blocked_terms)) {
+        $error = 'Please remove inappropriate language from your review.';
     } else {
         $order_stmt = $pdo->prepare("
-            SELECT id, shop_id
+            SELECT id, shop_id, rating
             FROM orders
             WHERE id = ? AND client_id = ? AND status = 'completed'
         ");
@@ -24,9 +43,15 @@ if(isset($_POST['submit_rating'])) {
 
         if(!$order) {
             $error = 'Unable to find a completed order to rate.';
+            } elseif(!empty($order['rating'])) {
+            $error = 'This order already has a rating. Each completed order can only be reviewed once.';
         } else {
-            $update_stmt = $pdo->prepare("UPDATE orders SET rating = ?, updated_at = NOW() WHERE id = ? AND client_id = ?");
-            $update_stmt->execute([$rating, $order_id, $client_id]);
+            $update_stmt = $pdo->prepare("
+                UPDATE orders
+                SET rating = ?, rating_title = ?, rating_comment = ?, rating_submitted_at = NOW(), updated_at = NOW()
+                WHERE id = ? AND client_id = ?
+            ");
+            $update_stmt->execute([$rating, $rating_title, $rating_comment, $order_id, $client_id]);
 
             $rating_stmt = $pdo->prepare("SELECT AVG(rating) as avg_rating FROM orders WHERE shop_id = ? AND rating IS NOT NULL AND rating > 0");
             $rating_stmt->execute([$order['shop_id']]);
@@ -124,6 +149,11 @@ $rated_orders = $rated_stmt->fetchAll();
                 <li><a href="track_order.php" class="nav-link">Track Orders</a></li>
                 <li><a href="customize_design.php" class="nav-link">Customize Design</a></li>
                 <li><a href="rate_provider.php" class="nav-link active">Rate Provider</a></li>
+                <li><a href="notifications.php" class="nav-link">Notifications
+                    <?php if($unread_notifications > 0): ?>
+                        <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
+                    <?php endif; ?>
+                </a></li>
                 <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
             </ul>
         </div>
@@ -171,6 +201,14 @@ $rated_orders = $rated_stmt->fetchAll();
                                 <?php endfor; ?>
                             </div>
                             <button type="submit" name="submit_rating" class="btn btn-primary">
+                                <div class="form-group">
+                                <label>Review Title (Optional)</label>
+                                <input type="text" name="rating_title" class="form-control" maxlength="150" placeholder="Summarize your experience">
+                            </div>
+                            <div class="form-group">
+                                <label>Review Comment (Optional)</label>
+                                <textarea name="rating_comment" class="form-control" rows="3" placeholder="Share details about quality, communication, or delivery"></textarea>
+                            </div>
                                 <i class="fas fa-paper-plane"></i> Submit Rating
                             </button>
                         </form>
@@ -202,6 +240,16 @@ $rated_orders = $rated_stmt->fetchAll();
                                     <?php endfor; ?>
                                 </div>
                             </div>
+                            <?php if(!empty($order['rating_title']) || !empty($order['rating_comment'])): ?>
+                                <div class="mt-2">
+                                    <?php if(!empty($order['rating_title'])): ?>
+                                        <strong><?php echo htmlspecialchars($order['rating_title']); ?></strong>
+                                    <?php endif; ?>
+                                    <?php if(!empty($order['rating_comment'])): ?>
+                                        <p class="text-muted mb-0"><?php echo htmlspecialchars($order['rating_comment']); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="text-muted small mt-2">#<?php echo htmlspecialchars($order['order_number']); ?></div>
                         </div>
                     <?php endforeach; ?>

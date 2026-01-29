@@ -4,8 +4,89 @@ require_once '../config/db.php';
 require_role('client');
 
 $client_id = $_SESSION['user']['id'];
+$unread_notifications = fetch_unread_notification_count($pdo, $client_id);
+$error = '';
+$success = '';
+$max_cancel_progress = 20;
+$max_revision_count = 2;
 $allowed_filters = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
 $filter = $_GET['filter'] ?? 'all';
+
+$action = $_POST['action'] ?? '';
+if($_SERVER['REQUEST_METHOD'] === 'POST' && $action !== '') {
+    $order_id = (int) ($_POST['order_id'] ?? 0);
+    $order_stmt = $pdo->prepare("
+        SELECT id, status, progress, design_file, design_approved, order_number, revision_count
+        FROM orders
+        WHERE id = ? AND client_id = ?
+    ");
+    $order_stmt->execute([$order_id, $client_id]);
+    $order = $order_stmt->fetch();
+
+    if(!$order) {
+        $error = 'Unable to locate the order for this action.';
+    } elseif($action === 'cancel_order') {
+        $reason = sanitize($_POST['cancellation_reason'] ?? '');
+        if(!in_array($order['status'], ['pending', 'accepted'], true) || (int) $order['progress'] > $max_cancel_progress) {
+            $error = 'This order can no longer be cancelled.';
+        } else {
+            $cancel_stmt = $pdo->prepare("
+                UPDATE orders
+                SET status = 'cancelled', cancellation_reason = ?, cancelled_at = NOW(), updated_at = NOW()
+                WHERE id = ? AND client_id = ?
+            ");
+            $cancel_stmt->execute([$reason, $order_id, $client_id]);
+            $success = 'Your order has been cancelled.';
+            create_notification(
+                $pdo,
+                $client_id,
+                $order_id,
+                'Order cancelled',
+                'Order #' . $order['order_number'] . ' was cancelled per your request.',
+                'warning'
+            );
+        }
+    } elseif($action === 'approve_design') {
+        if(!in_array($order['status'], ['accepted', 'in_progress'], true)) {
+            $error = 'Design approval is only available once the shop accepts the order.';
+        } elseif(empty($order['design_file'])) {
+            $error = 'There is no design file to approve yet.';
+        } elseif((int) $order['design_approved'] === 1) {
+            $error = 'This design has already been approved.';
+        } else {
+            $approve_stmt = $pdo->prepare("
+                UPDATE orders
+                SET design_approved = 1, updated_at = NOW()
+                WHERE id = ? AND client_id = ?
+            ");
+            $approve_stmt->execute([$order_id, $client_id]);
+            $success = 'Design approved. Production can begin once the shop starts work.';
+        }
+    } elseif($action === 'request_revision') {
+        $notes = sanitize($_POST['revision_notes'] ?? '');
+        if($notes === '') {
+            $error = 'Please add revision notes so the shop knows what to adjust.';
+        } elseif(empty($order['design_file'])) {
+            $error = 'Revision requests require a shared design file.';
+        } elseif(!in_array($order['status'], ['accepted', 'in_progress'], true)) {
+            $error = 'Revisions are only allowed while an order is accepted or in progress.';
+        } elseif((int) $order['revision_count'] >= $max_revision_count) {
+            $error = 'You have reached the maximum number of revision requests for this order.';
+        } else {
+            $revision_stmt = $pdo->prepare("
+                UPDATE orders
+                SET revision_count = revision_count + 1,
+                    revision_notes = ?,
+                    revision_requested_at = NOW(),
+                    design_approved = 0,
+                    updated_at = NOW()
+                WHERE id = ? AND client_id = ?
+            ");
+            $revision_stmt->execute([$notes, $order_id, $client_id]);
+            $success = 'Revision request sent to the shop.';
+        }
+    }
+}
 
 $query = "
     SELECT o.*, s.shop_name, s.logo
@@ -150,6 +231,11 @@ function status_pill($status) {
                 <li><a href="track_order.php" class="nav-link active">Track Orders</a></li>
                 <li><a href="customize_design.php" class="nav-link">Customize Design</a></li>
                 <li><a href="rate_provider.php" class="nav-link">Rate Provider</a></li>
+                <li><a href="notifications.php" class="nav-link">Notifications
+                    <?php if($unread_notifications > 0): ?>
+                        <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
+                    <?php endif; ?>
+                </a></li>
                 <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
             </ul>
         </div>
@@ -159,6 +245,22 @@ function status_pill($status) {
         <div class="dashboard-header">
             <h2>Track Your Orders</h2>
             <p class="text-muted">Stay updated on current progress, timelines, and shop updates.</p>
+        </div>
+
+        <?php if($error): ?>
+            <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo $error; ?></div>
+        <?php endif; ?>
+        <?php if($success): ?>
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> <?php echo $success; ?></div>
+        <?php endif; ?>
+
+        <div class="card mb-4">
+            <h3>Cancellation & Revision Rules</h3>
+            <ul class="text-muted mb-0">
+                <li>Orders can be cancelled while they are pending or accepted and before progress exceeds <?php echo $max_cancel_progress; ?>%.</li>
+                <li>Design approval is required before production starts. Approve shared designs or request changes.</li>
+                <li>Each order includes up to <?php echo $max_revision_count; ?> design revision requests while the order is accepted or in progress.</li>
+            </ul>
         </div>
 
         <div class="filter-tabs">
@@ -206,6 +308,66 @@ function status_pill($status) {
 
                     <?php if(!empty($order['design_description'])): ?>
                         <p class="text-muted mt-3"><i class="fas fa-clipboard"></i> <?php echo htmlspecialchars($order['design_description']); ?></p>
+                    <?php endif; ?>
+
+                    <?php if(!empty($order['design_file'])): ?>
+                        <div class="card mt-3" style="background: #f8fafc;">
+                            <div class="d-flex justify-between align-center">
+                                <div>
+                                    <strong>Design Approval</strong>
+                                    <p class="text-muted mb-0">Review the shared design before production starts.</p>
+                                </div>
+                                <div class="text-right">
+                                    <?php if($order['design_approved']): ?>
+                                        <span class="badge badge-success">Approved</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning">Pending Approval</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php if(!$order['design_approved']): ?>
+                                <div class="mt-3">
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="action" value="approve_design">
+                                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-check"></i> Approve Design
+                                        </button>
+                                    </form>
+                                    <form method="POST" class="mt-2">
+                                        <input type="hidden" name="action" value="request_revision">
+                                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                        <div class="form-group">
+                                            <label class="text-muted">Request a revision (<?php echo (int) $order['revision_count']; ?>/<?php echo $max_revision_count; ?> used)</label>
+                                            <textarea name="revision_notes" class="form-control" rows="2" placeholder="Share the updates you need..." required></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-pen"></i> Request Revision
+                                        </button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if(in_array($order['status'], ['pending', 'accepted'], true) && (int) $order['progress'] <= $max_cancel_progress): ?>
+                        <div class="card mt-3" style="background: #fef2f2;">
+                            <div class="d-flex justify-between align-center">
+                                <strong>Cancel Order</strong>
+                                <span class="text-muted small">Allowed before work exceeds <?php echo $max_cancel_progress; ?>%.</span>
+                            </div>
+                            <form method="POST" class="mt-2">
+                                <input type="hidden" name="action" value="cancel_order">
+                                <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                <div class="form-group">
+                                    <label class="text-muted">Cancellation reason (optional)</label>
+                                    <textarea name="cancellation_reason" class="form-control" rows="2" placeholder="Let the shop know why you are cancelling..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-times"></i> Cancel Order
+                                </button>
+                            </form>
+                        </div>
                     <?php endif; ?>
 
                     <?php if(!empty($order_photos[$order['id']])): ?>

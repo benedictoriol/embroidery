@@ -4,45 +4,96 @@ require_once '../config/db.php';
 require_role('employee');
 
 $employee_id = $_SESSION['user']['id'];
+$employee_role = $_SESSION['user']['role'] ?? null;
 
 // Get assigned jobs
 $jobs_stmt = $pdo->prepare("
-    SELECT o.*, u.fullname as client_name, s.shop_name
+    SELECT 
+        o.*,
+        u.fullname as client_name,
+        s.shop_name,
+        COALESCE(js.scheduled_date, o.scheduled_date) as schedule_date,
+        js.scheduled_time as schedule_time
     FROM orders o 
     JOIN users u ON o.client_id = u.id 
     JOIN shops s ON o.shop_id = s.id 
-    WHERE o.assigned_to = ? AND o.status IN ('accepted', 'in_progress')
-    ORDER BY o.scheduled_date ASC
+    LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+    WHERE (o.assigned_to = ? OR js.employee_id = ?)
+      AND o.status IN ('accepted', 'in_progress')
+    ORDER BY schedule_date ASC, js.scheduled_time ASC
 ");
-$jobs_stmt->execute([$employee_id]);
+$jobs_stmt->execute([$employee_id, $employee_id, $employee_id]);
 $jobs = $jobs_stmt->fetchAll();
 
 // Update status
 if(isset($_POST['update_status'])) {
-    $order_id = $_POST['order_id'];
-    $progress = $_POST['progress'];
+    $order_id = (int) $_POST['order_id'];
+    $progress = (int) $_POST['progress'];
     $status = $_POST['status'];
     $employee_notes = sanitize($_POST['employee_notes']);
     
-    try {
-        $update_stmt = $pdo->prepare("
-            UPDATE orders 
-            SET progress = ?, status = ?, shop_notes = CONCAT(COALESCE(shop_notes, ''), '\n', ?), 
-                updated_at = NOW() 
-            WHERE id = ? AND assigned_to = ?
-        ");
+    
+    $order_info_stmt = $pdo->prepare("
+        SELECT status, client_id, order_number
+        FROM orders
+        WHERE id = ? AND assigned_to = ?
+    ");
+    $order_info_stmt->execute([$order_id, $employee_id]);
+    $order_info = $order_info_stmt->fetch();
+
+    if(!$order_info) {
+        $error = "Unable to update this order.";
+    } else {
+        try {
+            $update_stmt = $pdo->prepare("
+                UPDATE orders 
+                SET progress = ?, status = ?, shop_notes = CONCAT(COALESCE(shop_notes, ''), '\n', ?), 
+                    updated_at = NOW() 
+                WHERE id = ? AND assigned_to = ?
+            ");
+            
+            $update_stmt->execute([$progress, $status, $employee_notes, $order_id, $employee_id]);
+            
+            // If completed, set completed_at
+            if($status == 'completed') {
+                $complete_stmt = $pdo->prepare("UPDATE orders SET completed_at = NOW() WHERE id = ?");
+                $complete_stmt->execute([$order_id]);
+            }
+
+            if($status !== $order_info['status']) {
+                $status_label = ucfirst(str_replace('_', ' ', $status));
+                $notification_type = $status === 'completed' ? 'success' : 'info';
+                create_notification(
+                    $pdo,
+                    (int) $order_info['client_id'],
+                    $order_id,
+                    'Order update: ' . $status_label,
+                    'Order #' . $order_info['order_number'] . ' has been updated to ' . strtolower($status_label) . '.',
+                    $notification_type
+                );
+            }
+            
+            $success = "Status updated successfully!";
+        } catch(PDOException $e) {
+            $error = "Failed to update status: " . $e->getMessage();
         
-        $update_stmt->execute([$progress, $status, $employee_notes, $order_id, $employee_id]);
-        
-        // If completed, set completed_at
-        if($status == 'completed') {
-            $complete_stmt = $pdo->prepare("UPDATE orders SET completed_at = NOW() WHERE id = ?");
-            $complete_stmt->execute([$order_id]);
-        }
-        
-        $success = "Status updated successfully!";
-    } catch(PDOException $e) {
-        $error = "Failed to update status: " . $e->getMessage();
+        log_audit(
+            $pdo,
+            $employee_id,
+            $employee_role,
+            'update_order_status',
+            'orders',
+            (int) $order_id,
+            [
+                'status' => $current_order['status'] ?? null,
+                'progress' => $current_order['progress'] ?? null,
+            ],
+            [
+                'status' => $status,
+                'progress' => (int) $progress,
+            ]
+        );
+    }
     }
 }
 ?>
@@ -140,6 +191,14 @@ if(isset($_POST['update_status'])) {
                             <p class="mb-0 text-muted">
                                 <?php echo htmlspecialchars($job['design_description']); ?>
                             </p>
+                            <?php if(!empty($job['schedule_date'])): ?>
+                                <p class="mb-0 text-muted">
+                                    <i class="fas fa-calendar"></i> Scheduled: <?php echo date('M d, Y', strtotime($job['schedule_date'])); ?>
+                                    <?php if(!empty($job['schedule_time'])): ?>
+                                        <span class="ml-1"><i class="fas fa-clock"></i> <?php echo date('h:i A', strtotime($job['schedule_time'])); ?></span>
+                                    <?php endif; ?>
+                                </p>
+                            <?php endif; ?>
                         </div>
                         <div class="text-right">
                             <div class="stat-number"><?php echo $job['progress']; ?>%</div>

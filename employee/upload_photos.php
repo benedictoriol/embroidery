@@ -20,13 +20,21 @@ if(!$employee) {
 }
 
 $jobs_stmt = $pdo->prepare("
-    SELECT o.id, o.order_number, o.service_type, u.fullname as client_name
+    SELECT 
+        o.id,
+        o.order_number,
+        o.service_type,
+        u.fullname as client_name,
+        COALESCE(js.scheduled_date, o.scheduled_date) as schedule_date,
+        js.scheduled_time as schedule_time
     FROM orders o
     JOIN users u ON o.client_id = u.id
-    WHERE o.assigned_to = ? AND o.status IN ('accepted', 'in_progress')
-    ORDER BY o.scheduled_date ASC
+    LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+    WHERE (o.assigned_to = ? OR js.employee_id = ?)
+      AND o.status IN ('accepted', 'in_progress')
+    ORDER BY schedule_date ASC, js.scheduled_time ASC
 ");
-$jobs_stmt->execute([$employee_id]);
+$jobs_stmt->execute([$employee_id, $employee_id, $employee_id]);
 $jobs = $jobs_stmt->fetchAll();
 
 $error = '';
@@ -36,8 +44,14 @@ if(isset($_POST['upload_photo'])) {
     $order_id = $_POST['order_id'] ?? '';
     $caption = sanitize($_POST['caption'] ?? '');
 
-    $order_stmt = $pdo->prepare("SELECT id FROM orders WHERE id = ? AND assigned_to = ?");
-    $order_stmt->execute([$order_id, $employee_id]);
+    $order_stmt = $pdo->prepare("
+        SELECT o.id
+        FROM orders o
+        LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+        WHERE o.id = ? AND (o.assigned_to = ? OR js.employee_id = ?)
+        LIMIT 1
+    ");
+    $order_stmt->execute([$employee_id, $order_id, $employee_id, $employee_id]);
     $order = $order_stmt->fetch();
 
     if(!$order) {
@@ -173,6 +187,12 @@ $recent_photos = $photos_stmt->fetchAll();
                             <option value="<?php echo $job['id']; ?>">
                                 #<?php echo htmlspecialchars($job['order_number']); ?> - <?php echo htmlspecialchars($job['service_type']); ?>
                                 (<?php echo htmlspecialchars($job['client_name']); ?>)
+                                <?php if(!empty($job['schedule_date'])): ?>
+                                    - <?php echo date('M d, Y', strtotime($job['schedule_date'])); ?>
+                                    <?php if(!empty($job['schedule_time'])): ?>
+                                        <?php echo date('h:i A', strtotime($job['schedule_time'])); ?>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

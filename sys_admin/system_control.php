@@ -13,11 +13,48 @@ $defaultSettings = [
     'alert_threshold' => 80,
 ];
 
-if (!isset($_SESSION['sys_admin_settings'])) {
-    $_SESSION['sys_admin_settings'] = $defaultSettings;
+$settings = $defaultSettings;
+$settingKeys = array_keys($defaultSettings);
+$placeholders = implode(',', array_fill(0, count($settingKeys), '?'));
+$settingsStmt = $pdo->prepare("
+    SELECT setting_key, setting_value
+    FROM system_settings
+    WHERE setting_key IN ($placeholders)
+");
+$settingsStmt->execute($settingKeys);
+$storedSettings = $settingsStmt->fetchAll();
+$storedKeys = [];
+
+foreach ($storedSettings as $row) {
+    $key = $row['setting_key'];
+    $storedKeys[$key] = true;
+    $value = $row['setting_value'];
+
+    if (in_array($key, ['maintenance_mode', 'new_registrations', 'auto_approvals', 'email_notifications'], true)) {
+        $parsed = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        $settings[$key] = $parsed === null ? (bool) $value : $parsed;
+    } elseif ($key === 'alert_threshold') {
+        $settings[$key] = (int) $value;
+    } else {
+        $settings[$key] = $value;
+    }
 }
 
-$settings = $_SESSION['sys_admin_settings'];
+$userId = $_SESSION['user']['id'] ?? null;
+$userRole = $_SESSION['user']['role'] ?? null;
+
+$insertStmt = $pdo->prepare("
+    INSERT INTO system_settings (setting_key, setting_value, updated_by)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_by = VALUES(updated_by)
+");
+
+foreach ($defaultSettings as $key => $value) {
+    if (!isset($storedKeys[$key])) {
+        $insertStmt->execute([$key, is_bool($value) ? (int) $value : (string) $value, $userId]);
+    }
+}
+
 $message = '';
 $messageType = 'success';
 
@@ -25,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'update_settings';
 
     if ($action === 'update_settings') {
+        $previousSettings = $settings;
         $settings['maintenance_mode'] = isset($_POST['maintenance_mode']);
         $settings['new_registrations'] = isset($_POST['new_registrations']);
         $settings['auto_approvals'] = isset($_POST['auto_approvals']);
@@ -32,9 +70,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings['backup_schedule'] = sanitize($_POST['backup_schedule'] ?? 'daily');
         $settings['alert_threshold'] = (int) ($_POST['alert_threshold'] ?? 80);
 
-        $_SESSION['sys_admin_settings'] = $settings;
+        foreach ($settings as $key => $value) {
+            $insertStmt->execute([$key, is_bool($value) ? (int) $value : (string) $value, $userId]);
+        }
+
+        log_audit(
+            $pdo,
+            $userId,
+            $userRole,
+            'update_system_settings',
+            'system_settings',
+            null,
+            $previousSettings,
+            $settings
+        );
         $message = 'System controls updated successfully.';
     } else {
+        log_audit(
+            $pdo,
+            $userId,
+            $userRole,
+            'run_system_task',
+            'system_task',
+            null,
+            [],
+            ['task' => $action]
+        );
         $message = 'System task queued: ' . ucfirst(str_replace('_', ' ', $action)) . '.';
     }
 }

@@ -21,7 +21,7 @@ $summary_stmt = $pdo->prepare("
         SUM(price) as total_earnings,
         AVG(price) as average_order
     FROM orders
-    WHERE shop_id = ? AND status = 'completed'
+    WHERE shop_id = ? AND status = 'completed' AND completed_at IS NOT NULL
 ");
 $summary_stmt->execute([$shop_id]);
 $summary = $summary_stmt->fetch();
@@ -29,7 +29,7 @@ $summary = $summary_stmt->fetch();
 $monthly_stmt = $pdo->prepare("
     SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(price) as total
     FROM orders
-    WHERE shop_id = ? AND status = 'completed'
+    WHERE shop_id = ? AND status = 'completed' AND completed_at IS NOT NULL
     GROUP BY DATE_FORMAT(created_at, '%Y-%m')
     ORDER BY month DESC
     LIMIT 6
@@ -41,7 +41,7 @@ $recent_stmt = $pdo->prepare("
     SELECT o.*, u.fullname as client_name
     FROM orders o
     JOIN users u ON o.client_id = u.id
-    WHERE o.shop_id = ? AND o.status = 'completed'
+    WHERE o.shop_id = ? AND o.status = 'completed' AND o.completed_at IS NOT NULL
     ORDER BY o.completed_at DESC, o.created_at DESC
     LIMIT 10
 ");

@@ -6,6 +6,8 @@ require_role('sys_admin');
 
 $message = '';
 $messageType = 'success';
+$actorId = $_SESSION['user']['id'] ?? null;
+$actorRole = $_SESSION['user']['role'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -17,31 +19,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             if ($action === 'approve_user') {
+                $statusStmt = $pdo->prepare("SELECT status FROM users WHERE id = ?");
+                $statusStmt->execute([$id]);
+                $previousStatus = $statusStmt->fetchColumn();
                 $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
                 $stmt->execute([$id]);
+                log_audit(
+                    $pdo,
+                    $actorId,
+                    $actorRole,
+                    'approve_user',
+                    'users',
+                    $id,
+                    ['status' => $previousStatus],
+                    ['status' => 'active']
+                );
                 $message = 'User approved successfully.';
             } elseif ($action === 'reject_user') {
+                $statusStmt = $pdo->prepare("SELECT status FROM users WHERE id = ?");
+                $statusStmt->execute([$id]);
+                $previousStatus = $statusStmt->fetchColumn();
                 $stmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE id = ?");
                 $stmt->execute([$id]);
+                log_audit(
+                    $pdo,
+                    $actorId,
+                    $actorRole,
+                    'reject_user',
+                    'users',
+                    $id,
+                    ['status' => $previousStatus],
+                    ['status' => 'rejected']
+                );
                 $message = 'User rejected successfully.';
                 $messageType = 'warning';
             } elseif ($action === 'approve_shop') {
+                $shopStatusStmt = $pdo->prepare("SELECT status, owner_id FROM shops WHERE id = ?");
+                $shopStatusStmt->execute([$id]);
+                $shopData = $shopStatusStmt->fetch();
+                $previousShopStatus = $shopData['status'] ?? null;
                 $shopStmt = $pdo->prepare("SELECT owner_id FROM shops WHERE id = ?");
                 $shopStmt->execute([$id]);
                 $ownerId = $shopStmt->fetchColumn();
 
                 $stmt = $pdo->prepare("UPDATE shops SET status = 'active' WHERE id = ?");
                 $stmt->execute([$id]);
+                log_audit(
+                    $pdo,
+                    $actorId,
+                    $actorRole,
+                    'approve_shop',
+                    'shops',
+                    $id,
+                    ['status' => $previousShopStatus],
+                    ['status' => 'active']
+                );
 
                 if ($ownerId) {
+                    $ownerStatusStmt = $pdo->prepare("SELECT status FROM users WHERE id = ?");
+                    $ownerStatusStmt->execute([$ownerId]);
+                    $previousOwnerStatus = $ownerStatusStmt->fetchColumn();
                     $ownerStmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
                     $ownerStmt->execute([$ownerId]);
+                    log_audit(
+                        $pdo,
+                        $actorId,
+                        $actorRole,
+                        'activate_shop_owner',
+                        'users',
+                        (int) $ownerId,
+                        ['status' => $previousOwnerStatus],
+                        ['status' => 'active']
+                    );
                 }
 
                 $message = 'Shop approved successfully.';
             } elseif ($action === 'reject_shop') {
+                $statusStmt = $pdo->prepare("SELECT status FROM shops WHERE id = ?");
+                $statusStmt->execute([$id]);
+                $previousStatus = $statusStmt->fetchColumn();
                 $stmt = $pdo->prepare("UPDATE shops SET status = 'rejected' WHERE id = ?");
                 $stmt->execute([$id]);
+                log_audit(
+                    $pdo,
+                    $actorId,
+                    $actorRole,
+                    'reject_shop',
+                    'shops',
+                    $id,
+                    ['status' => $previousStatus],
+                    ['status' => 'rejected']
+                );
                 $message = 'Shop rejected successfully.';
                 $messageType = 'warning';
             } else {

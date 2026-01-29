@@ -24,36 +24,52 @@ $shop_id = $employee['shop_id'];
 
 // Get assigned jobs
 $jobs_stmt = $pdo->prepare("
-    SELECT o.*, u.fullname as client_name 
+    SELECT 
+        o.*,
+        u.fullname as client_name,
+        COALESCE(js.scheduled_date, o.scheduled_date) as schedule_date,
+        js.scheduled_time as schedule_time 
     FROM orders o 
     JOIN users u ON o.client_id = u.id 
-    WHERE o.assigned_to = ? AND o.status IN ('accepted', 'in_progress')
-    ORDER BY o.scheduled_date ASC
+    LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+    WHERE (o.assigned_to = ? OR js.employee_id = ?)
+      AND o.status IN ('accepted', 'in_progress')
+    ORDER BY schedule_date ASC, js.scheduled_time ASC
 ");
-$jobs_stmt->execute([$employee_id]);
+$jobs_stmt->execute([$employee_id, $employee_id, $employee_id]);
 $assigned_jobs = $jobs_stmt->fetchAll();
 
 // Get today's schedule
 $schedule_stmt = $pdo->prepare("
-    SELECT js.*, o.order_number, o.service_type, u.fullname as client_name
-    FROM job_schedule js
-    JOIN orders o ON js.order_id = o.id
+    SELECT 
+        o.id as order_id,
+        o.order_number,
+        o.service_type,
+        o.status as order_status,
+        u.fullname as client_name,
+        COALESCE(js.scheduled_date, o.scheduled_date) as schedule_date,
+        js.scheduled_time as schedule_time,
+        COALESCE(js.status, o.status) as schedule_status,
+        js.task_description
+    FROM orders o
     JOIN users u ON o.client_id = u.id
-    WHERE js.employee_id = ? AND js.scheduled_date = CURDATE()
-    ORDER BY js.scheduled_time ASC
+    LEFT JOIN job_schedule js ON js.order_id = o.id AND js.employee_id = ?
+    WHERE (o.assigned_to = ? OR js.employee_id = ?)
+      AND COALESCE(js.scheduled_date, o.scheduled_date) = CURDATE()
+    ORDER BY schedule_time ASC
 ");
-$schedule_stmt->execute([$employee_id]);
+$schedule_stmt->execute([$employee_id, $employee_id, $employee_id]);
 $today_schedule = $schedule_stmt->fetchAll();
 
 // Get job statistics
 $stats_stmt = $pdo->prepare("
     SELECT 
-        (SELECT COUNT(*) FROM orders WHERE assigned_to = ? AND status = 'in_progress') as in_progress,
-        (SELECT COUNT(*) FROM orders WHERE assigned_to = ? AND status = 'completed') as completed,
-        (SELECT COUNT(*) FROM job_schedule WHERE employee_id = ? AND scheduled_date = CURDATE()) as today_tasks,
-        (SELECT AVG(rating) FROM orders WHERE assigned_to = ? AND rating IS NOT NULL) as avg_rating
+        (SELECT COUNT(*) FROM orders o WHERE (o.assigned_to = ? OR EXISTS (SELECT 1 FROM job_schedule js WHERE js.order_id = o.id AND js.employee_id = ?)) AND o.status = 'in_progress') as in_progress,
+        (SELECT COUNT(*) FROM orders o WHERE (o.assigned_to = ? OR EXISTS (SELECT 1 FROM job_schedule js WHERE js.order_id = o.id AND js.employee_id = ?)) AND o.status = 'completed') as completed,
+        (SELECT COUNT(*) FROM orders o WHERE (o.assigned_to = ? OR EXISTS (SELECT 1 FROM job_schedule js WHERE js.order_id = o.id AND js.employee_id = ?)) AND COALESCE((SELECT js2.scheduled_date FROM job_schedule js2 WHERE js2.order_id = o.id AND js2.employee_id = ? LIMIT 1), o.scheduled_date) = CURDATE()) as today_tasks,
+        (SELECT AVG(o.rating) FROM orders o WHERE (o.assigned_to = ? OR EXISTS (SELECT 1 FROM job_schedule js WHERE js.order_id = o.id AND js.employee_id = ?)) AND o.rating IS NOT NULL) as avg_rating
 ");
-$stats_stmt->execute([$employee_id, $employee_id, $employee_id, $employee_id]);
+$stats_stmt->execute([$employee_id, $employee_id, $employee_id, $employee_id, $employee_id, $employee_id, $employee_id, $employee_id, $employee_id]);
 $stats = $stats_stmt->fetch();
 ?>
 <!DOCTYPE html>
@@ -232,12 +248,16 @@ $stats = $stats_stmt->fetch();
                                         </p>
                                         <p class="mb-0">
                                             <i class="fas fa-clock"></i> 
-                                            <?php echo date('h:i A', strtotime($task['scheduled_time'])); ?>
+                                            <?php if(!empty($task['schedule_time'])): ?>
+                                                <?php echo date('h:i A', strtotime($task['schedule_time'])); ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">Time TBD</span>
+                                            <?php endif; ?>
                                         </p>
                                     </div>
                                     <div>
-                                        <span class="badge badge-<?php echo $task['status'] == 'completed' ? 'success' : 'info'; ?>">
-                                            <?php echo ucfirst($task['status']); ?>
+                                        <span class="badge badge-<?php echo $task['schedule_status'] == 'completed' ? 'success' : 'info'; ?>">
+                                            <?php echo ucfirst($task['schedule_status']); ?>
                                         </span>
                                     </div>
                                 </div>
@@ -290,11 +310,14 @@ $stats = $stats_stmt->fetch();
                                     </a>
                                 </div>
                             </div>
-                            <?php if($job['scheduled_date']): ?>
+                            <?php if($job['schedule_date']): ?>
                                 <div class="mt-2">
                                     <small class="text-muted">
                                         <i class="fas fa-calendar"></i> 
-                                        Due: <?php echo date('M d, Y', strtotime($job['scheduled_date'])); ?>
+                                        Scheduled: <?php echo date('M d, Y', strtotime($job['schedule_date'])); ?>
+                                        <?php if(!empty($job['schedule_time'])): ?>
+                                            <span class="ml-1"><i class="fas fa-clock"></i> <?php echo date('h:i A', strtotime($job['schedule_time'])); ?></span>
+                                        <?php endif; ?>
                                     </small>
                                 </div>
                             <?php endif; ?>

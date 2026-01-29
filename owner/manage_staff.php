@@ -30,11 +30,12 @@ if(isset($_POST['add_employee'])) {
         $user = $user_stmt->fetch();
         
         if($user) {
-            // Check if already an employee
-            $check_stmt = $pdo->prepare("SELECT id FROM shop_employees WHERE user_id = ?");
-            $check_stmt->execute([$user['id']]);
+            // Check if already an employee for this shop
+            $check_stmt = $pdo->prepare("SELECT id, status FROM shop_employees WHERE user_id = ? AND shop_id = ?");
+            $check_stmt->execute([$user['id'], $shop_id]);
+            $existing = $check_stmt->fetch();
             
-            if($check_stmt->rowCount() == 0) {
+            if(!$existing) {
                 // Add as employee
                 $add_stmt = $pdo->prepare("
                     INSERT INTO shop_employees (shop_id, user_id, position, permissions, hired_date) 
@@ -47,8 +48,20 @@ if(isset($_POST['add_employee'])) {
                 $update_stmt->execute([$user['id']]);
                 
                 $success = "Employee added successfully!";
+                } elseif($existing['status'] === 'inactive') {
+                $reactivate_stmt = $pdo->prepare("
+                    UPDATE shop_employees 
+                    SET status = 'active', position = ?, permissions = ?, hired_date = CURDATE() 
+                    WHERE id = ? AND shop_id = ?
+                ");
+                $reactivate_stmt->execute([$position, $permissions, $existing['id'], $shop_id]);
+                
+                $update_stmt = $pdo->prepare("UPDATE users SET role = 'employee' WHERE id = ?");
+                $update_stmt->execute([$user['id']]);
+                
+                $success = "Employee reactivated successfully!";
             } else {
-                $error = "User is already an employee!";
+                $error = "User is already an active employee for this shop!";
             }
         } else {
             $error = "User with this email not found!";
@@ -58,12 +71,57 @@ if(isset($_POST['add_employee'])) {
     }
 }
 
-// Remove employee
-if(isset($_GET['remove'])) {
-    $emp_id = $_GET['remove'];
-    $remove_stmt = $pdo->prepare("DELETE FROM shop_employees WHERE id = ? AND shop_id = ?");
-    $remove_stmt->execute([$emp_id, $shop_id]);
-    $success = "Employee removed successfully!";
+// Deactivate employee
+if(isset($_GET['deactivate'])) {
+    $emp_id = (int) $_GET['deactivate'];
+    $employee_stmt = $pdo->prepare("SELECT user_id FROM shop_employees WHERE id = ? AND shop_id = ?");
+    $employee_stmt->execute([$emp_id, $shop_id]);
+    $employee = $employee_stmt->fetch();
+
+    if($employee) {
+        $deactivate_stmt = $pdo->prepare("UPDATE shop_employees SET status = 'inactive' WHERE id = ? AND shop_id = ?");
+        $deactivate_stmt->execute([$emp_id, $shop_id]);
+
+        $unassign_stmt = $pdo->prepare("
+            UPDATE orders 
+            SET assigned_to = NULL 
+            WHERE shop_id = ? AND assigned_to = ? AND status IN ('pending', 'accepted', 'in_progress')
+        ");
+        $unassign_stmt->execute([$shop_id, $employee['user_id']]);
+
+        $active_stmt = $pdo->prepare("SELECT COUNT(*) as count FROM shop_employees WHERE user_id = ? AND status = 'active'");
+        $active_stmt->execute([$employee['user_id']]);
+        $active_count = $active_stmt->fetch();
+
+        if(($active_count['count'] ?? 0) == 0) {
+            $role_stmt = $pdo->prepare("UPDATE users SET role = 'client' WHERE id = ? AND role = 'employee'");
+            $role_stmt->execute([$employee['user_id']]);
+        }
+
+        $success = "Employee deactivated successfully!";
+    } else {
+        $error = "Employee not found for this shop.";
+    }
+}
+
+// Reactivate employee
+if(isset($_GET['reactivate'])) {
+    $emp_id = (int) $_GET['reactivate'];
+    $employee_stmt = $pdo->prepare("SELECT user_id FROM shop_employees WHERE id = ? AND shop_id = ?");
+    $employee_stmt->execute([$emp_id, $shop_id]);
+    $employee = $employee_stmt->fetch();
+
+    if($employee) {
+        $reactivate_stmt = $pdo->prepare("UPDATE shop_employees SET status = 'active' WHERE id = ? AND shop_id = ?");
+        $reactivate_stmt->execute([$emp_id, $shop_id]);
+
+        $role_stmt = $pdo->prepare("UPDATE users SET role = 'employee' WHERE id = ?");
+        $role_stmt->execute([$employee['user_id']]);
+
+        $success = "Employee reactivated successfully!";
+    } else {
+        $error = "Employee not found for this shop.";
+    }
 }
 
 // Get all employees
@@ -147,14 +205,24 @@ $employees = $employees_stmt->fetchAll();
                             </td>
                             <td><?php echo date('M d, Y', strtotime($emp['joined_date'])); ?></td>
                             <td>
-                                <span class="badge badge-success">Active</span>
+                                <?php if($emp['status'] === 'active'): ?>
+                                    <span class="badge badge-success">Active</span>
+                                <?php else: ?>
+                                    <span class="badge badge-warning">Inactive</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <a href="edit_employee.php?id=<?php echo $emp['id']; ?>" 
                                    class="btn btn-sm btn-outline-primary">Edit</a>
-                                <a href="manage_staff.php?remove=<?php echo $emp['id']; ?>" 
-                                   class="btn btn-sm btn-outline-danger"
-                                   onclick="return confirm('Are you sure you want to remove this employee?')">Remove</a>
+                                <?php if($emp['status'] === 'active'): ?>
+                                    <a href="manage_staff.php?deactivate=<?php echo $emp['id']; ?>" 
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Deactivate this employee and unassign active orders?')">Deactivate</a>
+                                <?php else: ?>
+                                    <a href="manage_staff.php?reactivate=<?php echo $emp['id']; ?>" 
+                                       class="btn btn-sm btn-outline-success"
+                                       onclick="return confirm('Reactivate this employee for the shop?')">Reactivate</a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

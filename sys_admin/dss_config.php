@@ -12,21 +12,79 @@ $defaultDss = [
     'access_audit' => true,
 ];
 
-if (!isset($_SESSION['sys_admin_dss'])) {
-    $_SESSION['sys_admin_dss'] = $defaultDss;
+$dss = $defaultDss;
+$dssKeys = array_keys($defaultDss);
+$placeholders = implode(',', array_fill(0, count($dssKeys), '?'));
+$dssStmt = $pdo->prepare("
+    SELECT config_key, config_value
+    FROM dss_configurations
+    WHERE config_type = 'system'
+      AND config_key IN ($placeholders)
+");
+$dssStmt->execute($dssKeys);
+$storedConfigs = $dssStmt->fetchAll();
+$storedKeys = [];
+
+foreach ($storedConfigs as $row) {
+    $key = $row['config_key'];
+    $storedKeys[$key] = true;
+    $value = $row['config_value'];
+
+    if (in_array($key, ['two_factor_required', 'access_audit'], true)) {
+        $parsed = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        $dss[$key] = $parsed === null ? (bool) $value : $parsed;
+    } else {
+        $dss[$key] = (int) $value;
+    }
 }
 
-$dss = $_SESSION['sys_admin_dss'];
+$userId = $_SESSION['user']['id'] ?? null;
+$userRole = $_SESSION['user']['role'] ?? null;
+$insertStmt = $pdo->prepare("
+    INSERT INTO dss_configurations (config_key, config_value, config_type, description, created_by)
+    VALUES (?, ?, 'system', ?, ?)
+    ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), created_by = VALUES(created_by)
+");
+
+foreach ($defaultDss as $key => $value) {
+    if (!isset($storedKeys[$key])) {
+        $insertStmt->execute([
+            $key,
+            is_bool($value) ? (int) $value : (string) $value,
+            'System security configuration',
+            $userId
+        ]);
+    }
+}
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $previousDss = $dss;
     $dss['data_retention_days'] = (int) ($_POST['data_retention_days'] ?? $dss['data_retention_days']);
     $dss['log_retention_days'] = (int) ($_POST['log_retention_days'] ?? $dss['log_retention_days']);
     $dss['auto_logout_minutes'] = (int) ($_POST['auto_logout_minutes'] ?? $dss['auto_logout_minutes']);
     $dss['two_factor_required'] = isset($_POST['two_factor_required']);
     $dss['access_audit'] = isset($_POST['access_audit']);
 
-    $_SESSION['sys_admin_dss'] = $dss;
+    foreach ($dss as $key => $value) {
+        $insertStmt->execute([
+            $key,
+            is_bool($value) ? (int) $value : (string) $value,
+            'System security configuration',
+            $userId
+        ]);
+    }
+
+    log_audit(
+        $pdo,
+        $userId,
+        $userRole,
+        'update_security_config',
+        'dss_configurations',
+        null,
+        $previousDss,
+        $dss
+    );
     $message = 'Security configuration saved.';
 }
 ?>

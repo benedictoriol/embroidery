@@ -4,6 +4,7 @@ require_once '../config/db.php';
 require_role('client');
 
 $client_id = $_SESSION['user']['id'];
+$unread_notifications = fetch_unread_notification_count($pdo, $client_id);
 
 $stats_stmt = $pdo->prepare("
     SELECT
@@ -99,6 +100,11 @@ function client_status_badge($status) {
                 <li><a href="track_order.php" class="nav-link">Track Orders</a></li>
                 <li><a href="customize_design.php" class="nav-link">Customize Design</a></li>
                 <li><a href="rate_provider.php" class="nav-link">Rate Provider</a></li>
+                <li><a href="notifications.php" class="nav-link">Notifications
+                    <?php if($unread_notifications > 0): ?>
+                        <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
+                    <?php endif; ?>
+                </a></li>
                 <li class="dropdown">
                     <a href="#" class="nav-link dropdown-toggle">
                         <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($_SESSION['user']['fullname']); ?>

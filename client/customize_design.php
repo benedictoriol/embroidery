@@ -5,6 +5,7 @@ require_once '../config/constants.php';
 require_role('client');
 
 $client_id = $_SESSION['user']['id'];
+$unread_notifications = fetch_unread_notification_count($pdo, $client_id);
 $error = '';
 $success = '';
 
@@ -124,6 +125,11 @@ if(isset($_POST['update_design'])) {
                 <li><a href="track_order.php" class="nav-link">Track Orders</a></li>
                 <li><a href="customize_design.php" class="nav-link active">Customize Design</a></li>
                 <li><a href="rate_provider.php" class="nav-link">Rate Provider</a></li>
+                <li><a href="notifications.php" class="nav-link">Notifications
+                    <?php if($unread_notifications > 0): ?>
+                        <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
+                    <?php endif; ?>
+                </a></li>
                 <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
             </ul>
         </div>

@@ -14,13 +14,61 @@ if(!$shop) {
 }
 
 $shop_id = $shop['id'];
-$allowed_filters = ['pending', 'in_progress', 'completed'];
+$allowed_filters = ['pending', 'accepted', 'in_progress', 'completed'];
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 
+$active_staff_stmt = $pdo->prepare("
+    SELECT se.user_id, u.fullname, se.position
+    FROM shop_employees se
+    JOIN users u ON se.user_id = u.id
+    WHERE se.shop_id = ? AND se.status = 'active'
+    ORDER BY u.fullname ASC
+");
+$active_staff_stmt->execute([$shop_id]);
+$active_staff = $active_staff_stmt->fetchAll();
+
+if(isset($_POST['assign_order'])) {
+    $order_id = (int) $_POST['order_id'];
+    $employee_id = (int) $_POST['employee_id'];
+
+    $order_stmt = $pdo->prepare("SELECT id, status FROM orders WHERE id = ? AND shop_id = ?");
+    $order_stmt->execute([$order_id, $shop_id]);
+    $order = $order_stmt->fetch();
+
+    if(!$order) {
+        $error = "Order not found for this shop.";
+    } elseif(in_array($order['status'], ['completed', 'cancelled'], true)) {
+        $error = "Completed or cancelled orders cannot be reassigned.";
+    } else {
+        if($employee_id > 0) {
+            $employee_stmt = $pdo->prepare("
+                SELECT se.user_id 
+                FROM shop_employees se 
+                WHERE se.shop_id = ? AND se.user_id = ? AND se.status = 'active'
+            ");
+            $employee_stmt->execute([$shop_id, $employee_id]);
+            $employee = $employee_stmt->fetch();
+
+            if($employee) {
+                $assign_stmt = $pdo->prepare("UPDATE orders SET assigned_to = ? WHERE id = ? AND shop_id = ?");
+                $assign_stmt->execute([$employee_id, $order_id, $shop_id]);
+                $success = "Order assignment updated.";
+            } else {
+                $error = "Selected employee is not active for this shop.";
+            }
+        } else {
+            $assign_stmt = $pdo->prepare("UPDATE orders SET assigned_to = NULL WHERE id = ? AND shop_id = ?");
+            $assign_stmt->execute([$order_id, $shop_id]);
+            $success = "Order unassigned.";
+        }
+    }
+}
+
 $query = "
-    SELECT o.*, u.fullname as client_name 
+    SELECT o.*, u.fullname as client_name, au.fullname as assigned_name 
     FROM orders o 
     JOIN users u ON o.client_id = u.id 
+    LEFT JOIN users au ON o.assigned_to = au.id
     WHERE o.shop_id = ?
 ";
 $params = [$shop_id];
@@ -73,8 +121,17 @@ $orders = $orders_stmt->fetchAll();
             text-transform: capitalize;
         }
         .status-pending { background: #fef9c3; color: #92400e; }
+        .status-accepted { background: #ede9fe; color: #5b21b6; }
         .status-in_progress { background: #e0f2fe; color: #0369a1; }
         .status-completed { background: #dcfce7; color: #166534; }
+        .assignment-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .assignment-form select {
+            min-width: 160px;
+        }
     </style>
 </head>
 <body>
@@ -100,9 +157,24 @@ $orders = $orders_stmt->fetchAll();
             <p class="text-muted">Review and track all orders submitted to your shop.</p>
         </div>
 
+        <?php if(isset($error)): ?>
+            <div class="alert alert-danger"><?php echo $error; ?></div>
+        <?php endif; ?>
+
+        <?php if(isset($success)): ?>
+            <div class="alert alert-success"><?php echo $success; ?></div>
+        <?php endif; ?>
+
+        <?php if(empty($active_staff)): ?>
+            <div class="alert alert-warning">
+                No active staff available. Add or reactivate employees to assign orders.
+            </div>
+        <?php endif; ?>
+
         <div class="filter-tabs">
             <a href="shop_orders.php" class="<?php echo $filter === 'all' ? 'active' : ''; ?>">All</a>
             <a href="shop_orders.php?filter=pending" class="<?php echo $filter === 'pending' ? 'active' : ''; ?>">Pending</a>
+            <a href="shop_orders.php?filter=accepted" class="<?php echo $filter === 'accepted' ? 'active' : ''; ?>">Accepted</a>
             <a href="shop_orders.php?filter=in_progress" class="<?php echo $filter === 'in_progress' ? 'active' : ''; ?>">In Progress</a>
             <a href="shop_orders.php?filter=completed" class="<?php echo $filter === 'completed' ? 'active' : ''; ?>">Completed</a>
         </div>
@@ -118,7 +190,9 @@ $orders = $orders_stmt->fetchAll();
                             <th>Service</th>
                             <th>Price</th>
                             <th>Status</th>
+                            <th>Assigned To</th>
                             <th>Date</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -133,7 +207,35 @@ $orders = $orders_stmt->fetchAll();
                                         <?php echo str_replace('_', ' ', ucfirst($order['status'])); ?>
                                     </span>
                                 </td>
+                                <td>
+                                    <?php if($order['assigned_name']): ?>
+                                        <?php echo htmlspecialchars($order['assigned_name']); ?>
+                                    <?php else: ?>
+                                        <span class="text-muted">Unassigned</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo date('M d, Y', strtotime($order['created_at'])); ?></td>
+                                <td>
+                                    <?php if(!in_array($order['status'], ['completed', 'cancelled'], true)): ?>
+                                        <form method="POST" class="assignment-form">
+                                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                            <select name="employee_id" class="form-control" <?php echo empty($active_staff) ? 'disabled' : ''; ?>>
+                                                <option value="">Unassigned</option>
+                                                <?php foreach($active_staff as $staff): ?>
+                                                    <option value="<?php echo $staff['user_id']; ?>"
+                                                        <?php echo ($order['assigned_to'] == $staff['user_id']) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($staff['fullname']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <button type="submit" name="assign_order" class="btn btn-sm btn-outline-primary" <?php echo empty($active_staff) ? 'disabled' : ''; ?>>
+                                                Save
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="text-muted">Assignment locked</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
