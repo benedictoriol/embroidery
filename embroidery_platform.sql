@@ -320,6 +320,8 @@ CREATE TABLE `orders` (
   `design_file` varchar(255) DEFAULT NULL,
   `design_approved` tinyint(1) DEFAULT 0,
   `rating` tinyint(1) DEFAULT NULL,
+  `payment_status` enum('unpaid','pending','paid','rejected') DEFAULT 'unpaid',
+  `payment_verified_at` datetime DEFAULT NULL,
   `rating_title` varchar(150) DEFAULT NULL,
   `rating_comment` text DEFAULT NULL,
   `rating_submitted_at` datetime DEFAULT NULL,
@@ -376,6 +378,43 @@ CREATE TABLE `order_photos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+
+--
+-- Table structure for table `payments`
+--
+
+CREATE TABLE `payments` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `client_id` int(11) NOT NULL,
+  `shop_id` int(11) NOT NULL,
+  `amount` decimal(10,2) DEFAULT NULL,
+  `proof_file` varchar(255) NOT NULL,
+  `status` enum('pending','verified','rejected') DEFAULT 'pending',
+  `verified_by` int(11) DEFAULT NULL,
+  `verified_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `type` varchar(50) NOT NULL,
+  `message` varchar(255) NOT NULL,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
 
 --
 -- Table structure for table `order_status_history`

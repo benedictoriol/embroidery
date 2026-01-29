@@ -21,7 +21,12 @@ if(!$shop) {
     exit();
 }
 
-$order_stmt = $pdo->prepare("SELECT status, client_id, order_number FROM orders WHERE id = ? AND shop_id = ?");
+$order_stmt = $pdo->prepare("
+    SELECT o.status, o.order_number, o.client_id, s.shop_name
+    FROM orders o
+    JOIN shops s ON o.shop_id = s.id
+    WHERE o.id = ? AND o.shop_id = ?
+");
 $order_stmt->execute([$order_id, $shop['id']]);
 $order = $order_stmt->fetch();
 
@@ -32,6 +37,15 @@ if(!$order || $order['status'] !== 'pending') {
 
 $update_stmt = $pdo->prepare("UPDATE orders SET status = 'cancelled' WHERE id = ? AND shop_id = ?");
 $update_stmt->execute([$order_id, $shop['id']]);
+
+if($order) {
+    $message = sprintf(
+        'Your order #%s has been cancelled by %s.',
+        $order['order_number'],
+        $order['shop_name']
+    );
+    create_notification($pdo, (int) $order['client_id'], $order_id, 'order_status', $message);
+}
 
 create_notification(
     $pdo,

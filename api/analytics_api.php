@@ -22,11 +22,27 @@ try {
             (SELECT COUNT(*) FROM users) as total_users,
             (SELECT COUNT(*) FROM shops) as total_shops,
             (SELECT COUNT(*) FROM orders) as total_orders,
-            (SELECT SUM(price) FROM orders WHERE status = 'completed') as total_revenue,
-            (SELECT COUNT(*) FROM orders WHERE status = 'completed') as completed_orders,
-            (SELECT COUNT(*) FROM orders WHERE status = 'pending') as pending_orders
+            (SELECT COUNT(*) FROM orders WHERE status = 'completed' AND completed_at IS NOT NULL) as completed_orders,
+            (SELECT COUNT(*) FROM orders WHERE status = 'pending') as pending_orders,
+            (SELECT COUNT(*) FROM orders WHERE status IN ('accepted', 'in_progress')) as active_orders,
+            (SELECT COUNT(*) FROM orders WHERE status = 'cancelled') as cancelled_orders,
+            (SELECT COUNT(*) FROM orders WHERE payment_status = 'paid') as paid_orders,
+            (SELECT COUNT(*) FROM orders WHERE payment_status = 'pending') as pending_payments,
+            (SELECT COALESCE(SUM(price), 0) FROM orders WHERE payment_status = 'paid') as total_revenue,
+            (SELECT COALESCE(AVG(price), 0) FROM orders WHERE status = 'completed' AND price IS NOT NULL) as avg_order_value
     ")->fetch();
 
+    $total_orders = (int) ($overview['total_orders'] ?? 0);
+    $overview['completion_rate'] = $total_orders > 0
+        ? round(($overview['completed_orders'] / $total_orders) * 100, 1)
+        : 0;
+    $overview['cancellation_rate'] = $total_orders > 0
+        ? round((($overview['cancelled_orders'] ?? 0) / $total_orders) * 100, 1)
+        : 0;
+    $overview['payment_rate'] = $total_orders > 0
+        ? round((($overview['paid_orders'] ?? 0) / $total_orders) * 100, 1)
+        : 0;
+        
     echo json_encode([
         'data' => $overview,
     ]);

@@ -9,9 +9,14 @@ $overview = $pdo->query("
         (SELECT COUNT(*) FROM users) as total_users,
         (SELECT COUNT(*) FROM shops) as total_shops,
         (SELECT COUNT(*) FROM orders) as total_orders,
-        (SELECT SUM(price) FROM orders WHERE status = 'completed') as total_revenue,
-        (SELECT COUNT(*) FROM orders WHERE status = 'completed') as completed_orders,
-        (SELECT COUNT(*) FROM orders WHERE status = 'pending') as pending_orders
+        (SELECT COUNT(*) FROM orders WHERE status = 'completed' AND completed_at IS NOT NULL) as completed_orders,
+        (SELECT COUNT(*) FROM orders WHERE status = 'pending') as pending_orders,
+        (SELECT COUNT(*) FROM orders WHERE status IN ('accepted', 'in_progress')) as active_orders,
+        (SELECT COUNT(*) FROM orders WHERE status = 'cancelled') as cancelled_orders,
+        (SELECT COUNT(*) FROM orders WHERE payment_status = 'paid') as paid_orders,
+        (SELECT COUNT(*) FROM orders WHERE payment_status = 'pending') as pending_payments,
+        (SELECT COALESCE(SUM(price), 0) FROM orders WHERE payment_status = 'paid') as total_revenue,
+        (SELECT COALESCE(AVG(price), 0) FROM orders WHERE status = 'completed' AND price IS NOT NULL) as avg_order_value
 ")->fetch();
 
 $dailyOrdersStmt = $pdo->query("
@@ -23,12 +28,24 @@ $dailyOrdersStmt = $pdo->query("
 ");
 $dailyOrdersRaw = $dailyOrdersStmt->fetchAll();
 
-$dailyRevenueStmt = $pdo->query("
-    SELECT DATE(created_at) as day, COALESCE(SUM(price), 0) as total
+$dailyCompletedStmt = $pdo->query("
+    SELECT DATE(completed_at) as day, COUNT(*) as total
     FROM orders
     WHERE status = 'completed'
-      AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-    GROUP BY DATE(created_at)
+      AND completed_at IS NOT NULL
+      AND completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(completed_at)
+    ORDER BY day
+");
+$dailyCompletedRaw = $dailyCompletedStmt->fetchAll();
+
+$dailyRevenueStmt = $pdo->query("
+    SELECT DATE(completed_at) as day, COALESCE(SUM(price), 0) as total
+    FROM orders
+    WHERE payment_status = 'paid'
+      AND completed_at IS NOT NULL
+      AND completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(completed_at)
     ORDER BY day
 ");
 $dailyRevenueRaw = $dailyRevenueStmt->fetchAll();
@@ -39,9 +56,11 @@ for ($i = 6; $i >= 0; $i--) {
 }
 
 $dailyOrders = [];
+$dailyCompleted = [];
 $dailyRevenue = [];
 foreach ($rangeDays as $day) {
     $dailyOrders[$day] = 0;
+    $dailyCompleted[$day] = 0;
     $dailyRevenue[$day] = 0;
 }
 
@@ -51,6 +70,10 @@ foreach ($dailyOrdersRaw as $row) {
 
 foreach ($dailyRevenueRaw as $row) {
     $dailyRevenue[$row['day']] = (float) $row['total'];
+}
+
+foreach ($dailyCompletedRaw as $row) {
+    $dailyCompleted[$row['day']] = (int) $row['total'];
 }
 
 $statusBreakdown = $pdo->query("SELECT status, COUNT(*) as total FROM orders GROUP BY status")->fetchAll();
@@ -66,6 +89,11 @@ $topServices = $pdo->query("
     ORDER BY total DESC
     LIMIT 5
 ")->fetchAll();
+
+$total_orders = (int) ($overview['total_orders'] ?? 0);
+$completion_rate = $total_orders > 0 ? ($overview['completed_orders'] / $total_orders) * 100 : 0;
+$cancellation_rate = $total_orders > 0 ? (($overview['cancelled_orders'] ?? 0) / $total_orders) * 100 : 0;
+$payment_rate = $total_orders > 0 ? (($overview['paid_orders'] ?? 0) / $total_orders) * 100 : 0;
 
 $orderLifecycle = $pdo->query("
     SELECT
@@ -163,13 +191,23 @@ $avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float)
             overflow: hidden;
         }
 
-        .chart-bar span {
+        .chart-bar .total-bar {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             background: var(--primary-500);
             border-radius: var(--radius);
+        }
+
+        .chart-bar .completed-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--success-500);
+            border-radius: var(--radius);
+            opacity: 0.85;
         }
 
         .metric-row {
@@ -225,7 +263,7 @@ $avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float)
             <div class="card analytics-card">
                 <h4>Revenue</h4>
                 <h2>₱<?php echo number_format($overview['total_revenue'] ?? 0, 2); ?></h2>
-                <p class="text-muted">Completed order earnings.</p>
+                <p class="text-muted">Daily totals (blue) with completed overlays (green).</p>
             </div>
 
             <div class="card chart-card">
@@ -235,9 +273,15 @@ $avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float)
                 </div>
                 <div class="chart-bars">
                     <?php foreach ($rangeDays as $day): ?>
-                        <?php $height = $dailyOrders[$day] > 0 ? min(200, 20 + $dailyOrders[$day] * 10) : 20; ?>
-                        <div class="chart-bar" title="<?php echo $dailyOrders[$day]; ?> orders">
-                            <span style="height: <?php echo $height; ?>px;"></span>
+                        <?php
+                            $total_height = $dailyOrders[$day] > 0 ? min(200, 20 + $dailyOrders[$day] * 10) : 20;
+                            $completed_height = $dailyCompleted[$day] > 0 ? min(200, 20 + $dailyCompleted[$day] * 10) : 0;
+                        ?>
+                        <div class="chart-bar" title="Total: <?php echo $dailyOrders[$day]; ?> | Completed: <?php echo $dailyCompleted[$day]; ?>">
+                            <span class="total-bar" style="height: <?php echo $total_height; ?>px;"></span>
+                            <?php if($completed_height > 0): ?>
+                                <span class="completed-bar" style="height: <?php echo $completed_height; ?>px;"></span>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -254,7 +298,7 @@ $avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float)
                     <p class="text-muted">Current distribution by status.</p>
                 </div>
                 <div>
-                    <?php foreach (['pending', 'in_progress', 'completed', 'cancelled'] as $status): ?>
+                    <?php foreach (['pending', 'accepted', 'in_progress', 'completed', 'cancelled'] as $status): ?>
                         <div class="metric-row">
                             <span><?php echo ucfirst(str_replace('_', ' ', $status)); ?></span>
                             <strong><?php echo $statusMap[$status] ?? 0; ?></strong>
@@ -266,13 +310,13 @@ $avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float)
             <div class="card chart-card">
                 <div class="card-header">
                     <h3><i class="fas fa-coins text-success"></i> Revenue Trend</h3>
-                    <p class="text-muted">Daily revenue from completed orders.</p>
+                    <p class="text-muted">Daily revenue from paid orders.</p>
                 </div>
                 <div class="chart-bars">
                     <?php foreach ($rangeDays as $day): ?>
                         <?php $height = $dailyRevenue[$day] > 0 ? min(200, 20 + ($dailyRevenue[$day] / 100)) : 20; ?>
                         <div class="chart-bar" title="₱<?php echo number_format($dailyRevenue[$day], 2); ?>">
-                            <span style="height: <?php echo $height; ?>px; background: var(--success-500);"></span>
+                            <span class="total-bar" style="height: <?php echo $height; ?>px; background: var(--success-500);"></span>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -280,6 +324,48 @@ $avgCompletionHours = $orderLifecycle['avg_completion_hours'] !== null ? (float)
                     <?php foreach ($rangeDays as $day): ?>
                         <small><?php echo date('D', strtotime($day)); ?></small>
                     <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="card data-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-clipboard-check text-success"></i> Order Health</h3>
+                    <p class="text-muted">Completion and cancellation accuracy.</p>
+                </div>
+                <div>
+                    <div class="metric-row">
+                        <span>Completion Rate</span>
+                        <strong><?php echo number_format($completion_rate, 1); ?>%</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Cancellation Rate</span>
+                        <strong><?php echo number_format($cancellation_rate, 1); ?>%</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Avg. Order Value</span>
+                        <strong>₱<?php echo number_format($overview['avg_order_value'] ?? 0, 2); ?></strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card data-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-credit-card text-primary"></i> Payments Snapshot</h3>
+                    <p class="text-muted">Manual payment verification status.</p>
+                </div>
+                <div>
+                    <div class="metric-row">
+                        <span>Paid Orders</span>
+                        <strong><?php echo $overview['paid_orders'] ?? 0; ?></strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Pending Payments</span>
+                        <strong><?php echo $overview['pending_payments'] ?? 0; ?></strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Payment Rate</span>
+                        <strong><?php echo number_format($payment_rate, 1); ?>%</strong>
+                    </div>
                 </div>
             </div>
 

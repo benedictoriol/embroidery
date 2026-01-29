@@ -45,6 +45,15 @@ if(isset($_POST['update_status'])) {
         $error = "Unable to update this order.";
     } else {
         try {
+            $order_info_stmt = $pdo->prepare("
+            SELECT o.status, o.order_number, o.client_id, s.shop_name, s.owner_id
+            FROM orders o
+            JOIN shops s ON o.shop_id = s.id
+            WHERE o.id = ? AND o.assigned_to = ?
+        ");
+        $order_info_stmt->execute([$order_id, $employee_id]);
+        $order_info = $order_info_stmt->fetch();
+
             $update_stmt = $pdo->prepare("
                 UPDATE orders 
                 SET progress = ?, status = ?, shop_notes = CONCAT(COALESCE(shop_notes, ''), '\n', ?), 
@@ -59,6 +68,20 @@ if(isset($_POST['update_status'])) {
                 $complete_stmt = $pdo->prepare("UPDATE orders SET completed_at = NOW() WHERE id = ?");
                 $complete_stmt->execute([$order_id]);
             }
+
+            
+        if($order_info && $order_info['status'] !== $status) {
+            $message = sprintf(
+                'Order #%s status updated to %s by %s.',
+                $order_info['order_number'],
+                str_replace('_', ' ', $status),
+                $order_info['shop_name']
+            );
+            create_notification($pdo, (int) $order_info['client_id'], (int) $order_id, 'order_status', $message);
+            if(!empty($order_info['owner_id'])) {
+                create_notification($pdo, (int) $order_info['owner_id'], (int) $order_id, 'order_status', $message);
+            }
+        }
 
             if($status !== $order_info['status']) {
                 $status_label = ucfirst(str_replace('_', ' ', $status));

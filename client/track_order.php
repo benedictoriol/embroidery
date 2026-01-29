@@ -4,6 +4,92 @@ require_once '../config/db.php';
 require_role('client');
 
 $client_id = $_SESSION['user']['id'];
+$success = null;
+$error = null;
+
+$payment_upload_dir = '../assets/uploads/payments/';
+
+if(isset($_POST['submit_payment'])) {
+    $order_id = (int) ($_POST['order_id'] ?? 0);
+    $proof_file = $_FILES['payment_proof'] ?? null;
+
+    $order_stmt = $pdo->prepare("
+        SELECT o.id, o.order_number, o.price, o.payment_status, o.status, o.shop_id, s.shop_name, s.owner_id
+        FROM orders o
+        JOIN shops s ON o.shop_id = s.id
+        WHERE o.id = ? AND o.client_id = ?
+    ");
+    $order_stmt->execute([$order_id, $client_id]);
+    $order = $order_stmt->fetch();
+
+    if(!$order) {
+        $error = 'Unable to find the order for payment submission.';
+    } elseif (in_array($order['status'], ['pending', 'cancelled'], true)) {
+        $error = 'Payments can only be submitted for accepted or in-progress orders.';
+    } else {
+        $latest_payment_stmt = $pdo->prepare("
+            SELECT status FROM payments WHERE order_id = ? ORDER BY created_at DESC LIMIT 1
+        ");
+        $latest_payment_stmt->execute([$order_id]);
+        $latest_payment = $latest_payment_stmt->fetch();
+        $latest_status = $latest_payment['status'] ?? null;
+
+        if($order['payment_status'] === 'paid' || $latest_status === 'verified') {
+            $error = 'This order has already been marked as paid.';
+        } elseif ($latest_status === 'pending') {
+            $error = 'A payment proof is already pending verification.';
+        } elseif (!$proof_file || $proof_file['error'] !== UPLOAD_ERR_OK) {
+            $error = 'Please upload a valid payment proof file.';
+        } else {
+            $allowed_ext = ['jpg', 'jpeg', 'png', 'pdf'];
+            $file_ext = strtolower(pathinfo($proof_file['name'], PATHINFO_EXTENSION));
+            $file_size = (int) $proof_file['size'];
+
+            if(!in_array($file_ext, $allowed_ext, true)) {
+                $error = 'Payment proofs must be JPG, PNG, or PDF files.';
+            } elseif ($file_size > 5 * 1024 * 1024) {
+                $error = 'Payment proof files must be smaller than 5MB.';
+            } else {
+                if(!is_dir($payment_upload_dir)) {
+                    mkdir($payment_upload_dir, 0755, true);
+                }
+
+                $filename = 'payment_' . $order_id . '_' . uniqid('proof_', true) . '.' . $file_ext;
+                $destination = $payment_upload_dir . $filename;
+
+                if(move_uploaded_file($proof_file['tmp_name'], $destination)) {
+                    $payment_stmt = $pdo->prepare("
+                        INSERT INTO payments (order_id, client_id, shop_id, amount, proof_file, status)
+                        VALUES (?, ?, ?, ?, ?, 'pending')
+                    ");
+                    $payment_stmt->execute([
+                        $order_id,
+                        $client_id,
+                        $order['shop_id'],
+                        $order['price'],
+                        $filename
+                    ]);
+
+                    $order_update_stmt = $pdo->prepare("
+                        UPDATE orders SET payment_status = 'pending' WHERE id = ? AND client_id = ?
+                    ");
+                    $order_update_stmt->execute([$order_id, $client_id]);
+
+                    $message = sprintf(
+                        'New payment proof submitted for order #%s (%s).',
+                        $order['order_number'],
+                        $order['shop_name']
+                    );
+                    create_notification($pdo, (int) $order['owner_id'], $order_id, 'payment', $message);
+
+                    $success = 'Payment proof submitted successfully. Awaiting verification.';
+                } else {
+                    $error = 'Unable to upload payment proof. Please try again.';
+                }
+            }
+        }
+    }
+}
 $unread_notifications = fetch_unread_notification_count($pdo, $client_id);
 $error = '';
 $success = '';
@@ -108,6 +194,7 @@ $orders_stmt->execute($params);
 $orders = $orders_stmt->fetchAll();
 
 $order_photos = [];
+$payment_by_order = [];
 if(!empty($orders)) {
     $order_ids = array_column($orders, 'id');
     $placeholders = implode(',', array_fill(0, count($order_ids), '?'));
@@ -122,6 +209,21 @@ if(!empty($orders)) {
     foreach($photos as $photo) {
         $order_photos[$photo['order_id']][] = $photo;
     }
+    
+    $payments_stmt = $pdo->prepare("
+        SELECT p.*
+        FROM payments p
+        WHERE p.order_id IN ($placeholders)
+        ORDER BY p.created_at DESC
+    ");
+    $payments_stmt->execute($order_ids);
+    $payments = $payments_stmt->fetchAll();
+
+    foreach($payments as $payment) {
+        if(!isset($payment_by_order[$payment['order_id']])) {
+            $payment_by_order[$payment['order_id']] = $payment;
+        }
+    }
 }
 
 function status_pill($status) {
@@ -134,6 +236,17 @@ function status_pill($status) {
     ];
     $class = $map[$status] ?? 'status-pending';
     return '<span class="status-pill ' . $class . '">' . ucfirst(str_replace('_', ' ', $status)) . '</span>';
+}
+
+function payment_status_pill($status) {
+    $map = [
+        'unpaid' => 'payment-unpaid',
+        'pending' => 'payment-pending',
+        'paid' => 'payment-paid',
+        'rejected' => 'payment-rejected'
+    ];
+    $class = $map[$status] ?? 'payment-unpaid';
+    return '<span class="status-pill ' . $class . '">' . ucfirst($status) . '</span>';
 }
 ?>
 <!DOCTYPE html>
@@ -177,6 +290,10 @@ function status_pill($status) {
         .status-in_progress { background: #e0e7ff; color: #3730a3; }
         .status-completed { background: #dcfce7; color: #166534; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
+        .payment-unpaid { background: #fef3c7; color: #92400e; }
+        .payment-pending { background: #e0f2fe; color: #0369a1; }
+        .payment-paid { background: #dcfce7; color: #166534; }
+        .payment-rejected { background: #fee2e2; color: #991b1b; }
         .order-card {
             border: 1px solid #e2e8f0;
             border-radius: 12px;
@@ -217,6 +334,15 @@ function status_pill($status) {
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
+        .payment-form {
+            margin-top: 16px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+        }
+        .payment-form input[type="file"] {
+            display: block;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -246,6 +372,14 @@ function status_pill($status) {
             <h2>Track Your Orders</h2>
             <p class="text-muted">Stay updated on current progress, timelines, and shop updates.</p>
         </div>
+
+        <?php if($error): ?>
+            <div class="alert alert-danger"><?php echo $error; ?></div>
+        <?php endif; ?>
+
+        <?php if($success): ?>
+            <div class="alert alert-success"><?php echo $success; ?></div>
+        <?php endif; ?>
 
         <?php if($error): ?>
             <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo $error; ?></div>
@@ -298,6 +432,42 @@ function status_pill($status) {
                             </div>
                         <?php endif; ?>
                     </div>
+
+                    <?php
+                        $payment = $payment_by_order[$order['id']] ?? null;
+                        $payment_status = $order['payment_status'] ?? 'unpaid';
+                        $latest_payment_status = $payment['status'] ?? null;
+                        $can_submit_payment = in_array($order['status'], ['accepted', 'in_progress', 'completed'], true)
+                            && $payment_status !== 'paid'
+                            && $latest_payment_status !== 'pending';
+                    ?>
+                    <div class="mt-3">
+                        <strong>Payment:</strong>
+                        <?php echo payment_status_pill($payment_status); ?>
+                        <?php if($latest_payment_status === 'pending'): ?>
+                            <div class="text-muted small mt-2">Payment proof is pending verification.</div>
+                        <?php elseif($latest_payment_status === 'rejected'): ?>
+                            <div class="text-muted small mt-2">Payment proof was rejected. Please upload a new proof.</div>
+                        <?php elseif($payment_status === 'paid'): ?>
+                            <div class="text-muted small mt-2">Payment verified by the shop.</div>
+                        <?php else: ?>
+                            <div class="text-muted small mt-2">No payment proof submitted yet.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if($can_submit_payment): ?>
+                        <form method="POST" enctype="multipart/form-data" class="payment-form">
+                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                            <div class="form-group">
+                                <label>Upload Payment Proof (JPG, PNG, PDF)</label>
+                                <input type="file" name="payment_proof" class="form-control" required>
+                            </div>
+                            <button type="submit" name="submit_payment" class="btn btn-primary btn-sm">
+                                <i class="fas fa-upload"></i> Submit Proof
+                            </button>
+                        </form>
+                    <?php endif; ?>
+
 
                     <div class="mt-3">
                         <strong>Progress: <?php echo $order['progress']; ?>%</strong>

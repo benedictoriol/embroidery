@@ -124,6 +124,10 @@ $orders = $orders_stmt->fetchAll();
         .status-accepted { background: #ede9fe; color: #5b21b6; }
         .status-in_progress { background: #e0f2fe; color: #0369a1; }
         .status-completed { background: #dcfce7; color: #166534; }
+        .payment-unpaid { background: #fef3c7; color: #92400e; }
+        .payment-pending { background: #e0f2fe; color: #0369a1; }
+        .payment-paid { background: #dcfce7; color: #166534; }
+        .payment-rejected { background: #fee2e2; color: #991b1b; }
         .assignment-form {
             display: flex;
             gap: 8px;
@@ -145,6 +149,7 @@ $orders = $orders_stmt->fetchAll();
                 <li><a href="shop_profile.php" class="nav-link">Shop Profile</a></li>
                 <li><a href="manage_staff.php" class="nav-link">Staff</a></li>
                 <li><a href="shop_orders.php" class="nav-link active">Orders</a></li>
+                <li><a href="payment_verifications.php" class="nav-link">Payments</a></li>
                 <li><a href="earnings.php" class="nav-link">Earnings</a></li>
                 <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
             </ul>
@@ -190,6 +195,7 @@ $orders = $orders_stmt->fetchAll();
                             <th>Service</th>
                             <th>Price</th>
                             <th>Status</th>
+                            <th>Payment</th>
                             <th>Assigned To</th>
                             <th>Date</th>
                             <th>Actions</th>
@@ -205,6 +211,15 @@ $orders = $orders_stmt->fetchAll();
                                 <td>
                                     <span class="status-pill status-<?php echo htmlspecialchars($order['status']); ?>">
                                         <?php echo str_replace('_', ' ', ucfirst($order['status'])); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php
+                                        $payment_status = $order['payment_status'] ?? 'unpaid';
+                                        $payment_class = 'payment-' . $payment_status;
+                                    ?>
+                                    <span class="status-pill <?php echo htmlspecialchars($payment_class); ?>">
+                                        <?php echo ucfirst($payment_status); ?>
                                     </span>
                                 </td>
                                 <td>
