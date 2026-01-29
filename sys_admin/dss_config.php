@@ -12,11 +12,39 @@ $defaultDss = [
     'access_audit' => true,
 ];
 
-if (!isset($_SESSION['sys_admin_dss'])) {
-    $_SESSION['sys_admin_dss'] = $defaultDss;
+$dssDescriptions = [
+    'data_retention_days' => 'Retention period for customer and order data.',
+    'two_factor_required' => 'Require two-factor authentication for privileged accounts.',
+    'log_retention_days' => 'Retention period for audit and access logs.',
+    'auto_logout_minutes' => 'Minutes of inactivity before auto-logout.',
+    'access_audit' => 'Enable logging of security-sensitive actions.',
+];
+
+$dss = $defaultDss;
+$dssKeys = array_keys($defaultDss);
+$placeholders = implode(',', array_fill(0, count($dssKeys), '?'));
+$stmt = $pdo->prepare("
+    SELECT config_key, config_value
+    FROM dss_configurations
+    WHERE config_type = 'system' AND config_key IN ($placeholders)
+");
+$stmt->execute($dssKeys);
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $key = $row['config_key'];
+    if (!array_key_exists($key, $dss)) {
+        continue;
+    }
+    $defaultValue = $dss[$key];
+    if (is_bool($defaultValue)) {
+        $dss[$key] = filter_var($row['config_value'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $defaultValue;
+    } elseif (is_int($defaultValue)) {
+        $dss[$key] = (int) $row['config_value'];
+    } else {
+        $dss[$key] = $row['config_value'];
+    }
 }
 
-$dss = $_SESSION['sys_admin_dss'];
+$currentUserId = $_SESSION['user']['id'] ?? null;
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -26,7 +54,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dss['two_factor_required'] = isset($_POST['two_factor_required']);
     $dss['access_audit'] = isset($_POST['access_audit']);
 
-    $_SESSION['sys_admin_dss'] = $dss;
+    $upsert = $pdo->prepare("
+        INSERT INTO dss_configurations (config_key, config_value, config_type, description, created_by)
+        VALUES (:config_key, :config_value, 'system', :description, :created_by)
+        ON DUPLICATE KEY UPDATE
+            config_value = VALUES(config_value),
+            updated_at = CURRENT_TIMESTAMP
+    ");
+
+    foreach ($dss as $key => $value) {
+        $storedValue = is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+        $upsert->execute([
+            'config_key' => $key,
+            'config_value' => $storedValue,
+            'description' => $dssDescriptions[$key] ?? null,
+            'created_by' => $currentUserId,
+        ]);
+    }
     $message = 'Security configuration saved.';
 }
 ?>

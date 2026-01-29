@@ -14,8 +14,14 @@ if(!$shop) {
 }
 
 $shop_id = $shop['id'];
-$allowed_filters = ['pending', 'in_progress', 'completed'];
+$allowed_filters = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+$action = isset($_GET['action']) ? $_GET['action'] : '';
+
+$action_messages = [
+    'accepted' => 'Order accepted successfully.',
+    'rejected' => 'Order rejected successfully.'
+];
 
 $query = "
     SELECT o.*, u.fullname as client_name 
@@ -73,8 +79,15 @@ $orders = $orders_stmt->fetchAll();
             text-transform: capitalize;
         }
         .status-pending { background: #fef9c3; color: #92400e; }
-        .status-in_progress { background: #e0f2fe; color: #0369a1; }
+        .status-accepted { background: #e0f2fe; color: #0369a1; }
+        .status-in_progress { background: #ede9fe; color: #5b21b6; }
         .status-completed { background: #dcfce7; color: #166534; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -100,11 +113,19 @@ $orders = $orders_stmt->fetchAll();
             <p class="text-muted">Review and track all orders submitted to your shop.</p>
         </div>
 
+        <?php if(isset($action_messages[$action])): ?>
+            <div class="alert alert-success">
+                <?php echo $action_messages[$action]; ?>
+            </div>
+        <?php endif; ?>
+
         <div class="filter-tabs">
             <a href="shop_orders.php" class="<?php echo $filter === 'all' ? 'active' : ''; ?>">All</a>
             <a href="shop_orders.php?filter=pending" class="<?php echo $filter === 'pending' ? 'active' : ''; ?>">Pending</a>
+            <a href="shop_orders.php?filter=accepted" class="<?php echo $filter === 'accepted' ? 'active' : ''; ?>">Accepted</a>
             <a href="shop_orders.php?filter=in_progress" class="<?php echo $filter === 'in_progress' ? 'active' : ''; ?>">In Progress</a>
             <a href="shop_orders.php?filter=completed" class="<?php echo $filter === 'completed' ? 'active' : ''; ?>">Completed</a>
+            <a href="shop_orders.php?filter=cancelled" class="<?php echo $filter === 'cancelled' ? 'active' : ''; ?>">Cancelled</a>
         </div>
 
         <div class="card">
@@ -119,6 +140,7 @@ $orders = $orders_stmt->fetchAll();
                             <th>Price</th>
                             <th>Status</th>
                             <th>Date</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -134,6 +156,20 @@ $orders = $orders_stmt->fetchAll();
                                     </span>
                                 </td>
                                 <td><?php echo date('M d, Y', strtotime($order['created_at'])); ?></td>
+                                <td>
+                                    <?php if($order['status'] === 'pending'): ?>
+                                        <div class="order-actions">
+                                            <a href="accept_order.php?id=<?php echo $order['id']; ?>" class="btn btn-sm btn-success">
+                                                Accept
+                                            </a>
+                                            <a href="reject_order.php?id=<?php echo $order['id']; ?>" class="btn btn-sm btn-danger">
+                                                Reject
+                                            </a>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

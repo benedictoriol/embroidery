@@ -19,6 +19,23 @@ if(!$employee) {
     die("You are not assigned to any shop. Please contact your shop owner.");
 }
 
+$permissions = [
+    'view_jobs' => true,
+    'update_status' => true,
+    'upload_photos' => true
+];
+if (!empty($employee['permissions'])) {
+    $decoded_permissions = json_decode($employee['permissions'], true);
+    if (is_array($decoded_permissions)) {
+        $permissions = array_merge($permissions, $decoded_permissions);
+    }
+}
+
+if (empty($permissions['upload_photos'])) {
+    header("Location: schedule.php");
+    exit();
+}
+
 $jobs_stmt = $pdo->prepare("
     SELECT o.id, o.order_number, o.service_type, u.fullname as client_name
     FROM orders o
@@ -133,9 +150,15 @@ $recent_photos = $photos_stmt->fetchAll();
             </a>
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
-                <li><a href="assigned_jobs.php" class="nav-link">My Jobs</a></li>
-                <li><a href="update_status.php" class="nav-link">Update Status</a></li>
-                <li><a href="upload_photos.php" class="nav-link active">Upload Photos</a></li>
+                <?php if(!empty($permissions['view_jobs'])): ?>
+                    <li><a href="assigned_jobs.php" class="nav-link">My Jobs</a></li>
+                <?php endif; ?>
+                <?php if(!empty($permissions['update_status'])): ?>
+                    <li><a href="update_status.php" class="nav-link">Update Status</a></li>
+                <?php endif; ?>
+                <?php if(!empty($permissions['upload_photos'])): ?>
+                    <li><a href="upload_photos.php" class="nav-link active">Upload Photos</a></li>
+                <?php endif; ?>
                 <li><a href="schedule.php" class="nav-link">Schedule</a></li>
                 <li class="dropdown">
                     <a href="#" class="nav-link dropdown-toggle">

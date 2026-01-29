@@ -48,7 +48,7 @@ require_once 'config/db.php';
     <section class="hero-section">
         <div class="container">
             <h1 class="hero-title">Professional Embroidery Services Platform</h1>
-            <p class="hero-subtitle"></p>
+            <p class="hero-subtitle">
                 Connect with the best embroidery service providers. From custom designs to bulk orders, 
                 we provide a complete solution for all your embroidery needs.
             </p>

@@ -21,8 +21,12 @@ $shop_id = $shop['id'];
 if(isset($_POST['add_employee'])) {
     $email = sanitize($_POST['email']);
     $position = sanitize($_POST['position']);
-    $permissions = json_encode(['view_jobs' => true, 'update_status' => true, 'upload_photos' => true]);
-    
+    $permissions = [
+        'view_jobs' => !empty($_POST['perm_view_jobs']),
+        'update_status' => !empty($_POST['perm_update_status']),
+        'upload_photos' => !empty($_POST['perm_upload_photos'])
+    ];
+    $permissions_json = json_encode($permissions);    
     try {
         // Check if user exists
         $user_stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
@@ -40,7 +44,7 @@ if(isset($_POST['add_employee'])) {
                     INSERT INTO shop_employees (shop_id, user_id, position, permissions, hired_date) 
                     VALUES (?, ?, ?, ?, CURDATE())
                 ");
-                $add_stmt->execute([$shop_id, $user['id'], $position, $permissions]);
+                $add_stmt->execute([$shop_id, $user['id'], $position, $permissions_json]);
                 
                 // Update user role to employee
                 $update_stmt = $pdo->prepare("UPDATE users SET role = 'employee' WHERE id = ?");
@@ -223,17 +227,18 @@ $employees = $employees_stmt->fetchAll();
                 
                 <div class="form-group">
                     <label>Permissions</label>
+                    <p class="text-muted mb-2">Uncheck all job permissions to give schedule-only access.</p>
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" checked disabled>
-                        <label class="form-check-label">View assigned jobs</label>
+                        <input type="checkbox" class="form-check-input" id="perm_view_jobs" name="perm_view_jobs" checked>
+                        <label class="form-check-label" for="perm_view_jobs">View assigned jobs</label>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" checked disabled>
-                        <label class="form-check-label">Update job status</label>
+                        <input type="checkbox" class="form-check-input" id="perm_update_status" name="perm_update_status" checked>
+                        <label class="form-check-label" for="perm_update_status">Update job status</label>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" checked disabled>
-                        <label class="form-check-label">Upload output photos</label>
+                        <input type="checkbox" class="form-check-input" id="perm_upload_photos" name="perm_upload_photos" checked>
+                        <label class="form-check-label" for="perm_upload_photos">Upload output photos</label>
                     </div>
                 </div>
                 

@@ -13,11 +13,40 @@ $defaultSettings = [
     'alert_threshold' => 80,
 ];
 
-if (!isset($_SESSION['sys_admin_settings'])) {
-    $_SESSION['sys_admin_settings'] = $defaultSettings;
+$settingsDescriptions = [
+    'maintenance_mode' => 'Disable public access while maintenance is underway.',
+    'new_registrations' => 'Allow new users to register accounts.',
+    'auto_approvals' => 'Automatically approve new users and shops.',
+    'email_notifications' => 'Enable system alert emails.',
+    'backup_schedule' => 'Frequency of platform backups.',
+    'alert_threshold' => 'System alert threshold percentage.',
+];
+
+$settings = $defaultSettings;
+$settingsKeys = array_keys($defaultSettings);
+$placeholders = implode(',', array_fill(0, count($settingsKeys), '?'));
+$stmt = $pdo->prepare("
+    SELECT config_key, config_value
+    FROM dss_configurations
+    WHERE config_type = 'system' AND config_key IN ($placeholders)
+");
+$stmt->execute($settingsKeys);
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $key = $row['config_key'];
+    if (!array_key_exists($key, $settings)) {
+        continue;
+    }
+    $defaultValue = $settings[$key];
+    if (is_bool($defaultValue)) {
+        $settings[$key] = filter_var($row['config_value'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $defaultValue;
+    } elseif (is_int($defaultValue)) {
+        $settings[$key] = (int) $row['config_value'];
+    } else {
+        $settings[$key] = $row['config_value'];
+    }
 }
 
-$settings = $_SESSION['sys_admin_settings'];
+$currentUserId = $_SESSION['user']['id'] ?? null;
 $message = '';
 $messageType = 'success';
 
@@ -32,7 +61,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings['backup_schedule'] = sanitize($_POST['backup_schedule'] ?? 'daily');
         $settings['alert_threshold'] = (int) ($_POST['alert_threshold'] ?? 80);
 
-        $_SESSION['sys_admin_settings'] = $settings;
+        $upsert = $pdo->prepare("
+            INSERT INTO dss_configurations (config_key, config_value, config_type, description, created_by)
+            VALUES (:config_key, :config_value, 'system', :description, :created_by)
+            ON DUPLICATE KEY UPDATE
+                config_value = VALUES(config_value),
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($settings as $key => $value) {
+            $storedValue = is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+            $upsert->execute([
+                'config_key' => $key,
+                'config_value' => $storedValue,
+                'description' => $settingsDescriptions[$key] ?? null,
+                'created_by' => $currentUserId,
+            ]);
+        }
         $message = 'System controls updated successfully.';
     } else {
         $message = 'System task queued: ' . ucfirst(str_replace('_', ' ', $action)) . '.';

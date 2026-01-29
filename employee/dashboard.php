@@ -20,6 +20,24 @@ if(!$employee) {
     die("You are not assigned to any shop. Please contact your shop owner.");
 }
 
+$permissions = [
+    'view_jobs' => true,
+    'update_status' => true,
+    'upload_photos' => true
+];
+if (!empty($employee['permissions'])) {
+    $decoded_permissions = json_decode($employee['permissions'], true);
+    if (is_array($decoded_permissions)) {
+        $permissions = array_merge($permissions, $decoded_permissions);
+    }
+}
+
+$has_job_access = !empty($permissions['view_jobs']) || !empty($permissions['update_status']) || !empty($permissions['upload_photos']);
+if (!$has_job_access) {
+    header("Location: schedule.php");
+    exit();
+}
+
 $shop_id = $employee['shop_id'];
 
 // Get assigned jobs
@@ -118,9 +136,15 @@ $stats = $stats_stmt->fetch();
             </a>
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link active">Dashboard</a></li>
-                <li><a href="assigned_jobs.php" class="nav-link">My Jobs</a></li>
-                <li><a href="update_status.php" class="nav-link">Update Status</a></li>
-                <li><a href="upload_photos.php" class="nav-link">Upload Photos</a></li>
+                <?php if(!empty($permissions['view_jobs'])): ?>
+                    <li><a href="assigned_jobs.php" class="nav-link">My Jobs</a></li>
+                <?php endif; ?>
+                <?php if(!empty($permissions['update_status'])): ?>
+                    <li><a href="update_status.php" class="nav-link">Update Status</a></li>
+                <?php endif; ?>
+                <?php if(!empty($permissions['upload_photos'])): ?>
+                    <li><a href="upload_photos.php" class="nav-link">Upload Photos</a></li>
+                <?php endif; ?>
                 <li><a href="schedule.php" class="nav-link">Schedule</a></li>
                 <li class="dropdown">
                     <a href="#" class="nav-link dropdown-toggle">
@@ -200,15 +224,21 @@ $stats = $stats_stmt->fetch();
         <div class="card mb-4">
             <h3>Quick Actions</h3>
             <div class="d-flex flex-wrap" style="gap: 10px;">
-                <a href="assigned_jobs.php" class="btn btn-primary">
-                    <i class="fas fa-list"></i> View All Jobs
-                </a>
-                <a href="update_status.php" class="btn btn-outline-primary">
-                    <i class="fas fa-edit"></i> Update Job Status
-                </a>
-                <a href="upload_photos.php" class="btn btn-outline-success">
-                    <i class="fas fa-camera"></i> Upload Photos
-                </a>
+                <?php if(!empty($permissions['view_jobs'])): ?>
+                    <a href="assigned_jobs.php" class="btn btn-primary">
+                        <i class="fas fa-list"></i> View All Jobs
+                    </a>
+                <?php endif; ?>
+                <?php if(!empty($permissions['update_status'])): ?>
+                    <a href="update_status.php" class="btn btn-outline-primary">
+                        <i class="fas fa-edit"></i> Update Job Status
+                    </a>
+                <?php endif; ?>
+                <?php if(!empty($permissions['upload_photos'])): ?>
+                    <a href="upload_photos.php" class="btn btn-outline-success">
+                        <i class="fas fa-camera"></i> Upload Photos
+                    </a>
+                <?php endif; ?>
                 <a href="schedule.php" class="btn btn-outline-warning">
                     <i class="fas fa-calendar"></i> View Schedule
                 </a>
@@ -261,58 +291,62 @@ $stats = $stats_stmt->fetch();
             </div>
 
             <!-- Assigned Jobs -->
-            <div style="flex: 1;">
-                <div class="card">
-                    <h3><i class="fas fa-tasks"></i> Currently Assigned Jobs</h3>
-                    <?php if(!empty($assigned_jobs)): ?>
-                        <?php foreach($assigned_jobs as $job): ?>
-                        <div class="job-card">
-                            <div class="d-flex justify-between align-center">
-                                <div>
-                                    <h5 class="mb-1"><?php echo htmlspecialchars($job['service_type']); ?></h5>
-                                    <p class="mb-1 text-muted">
-                                        <i class="fas fa-user"></i> <?php echo htmlspecialchars($job['client_name']); ?>
-                                    </p>
-                                    <div class="d-flex align-center">
-                                        <div class="progress-bar-container" style="width: 100px;">
-                                            <div class="progress-fill" style="width: <?php echo $job['progress']; ?>%;"></div>
+            <?php if(!empty($permissions['view_jobs'])): ?>
+                <div style="flex: 1;">
+                    <div class="card">
+                        <h3><i class="fas fa-tasks"></i> Currently Assigned Jobs</h3>
+                        <?php if(!empty($assigned_jobs)): ?>
+                            <?php foreach($assigned_jobs as $job): ?>
+                            <div class="job-card">
+                                <div class="d-flex justify-between align-center">
+                                    <div>
+                                        <h5 class="mb-1"><?php echo htmlspecialchars($job['service_type']); ?></h5>
+                                        <p class="mb-1 text-muted">
+                                            <i class="fas fa-user"></i> <?php echo htmlspecialchars($job['client_name']); ?>
+                                        </p>
+                                        <div class="d-flex align-center">
+                                            <div class="progress-bar-container" style="width: 100px;">
+                                                <div class="progress-fill" style="width: <?php echo $job['progress']; ?>%;"></div>
+                                            </div>
+                                            <span class="ml-2"><?php echo $job['progress']; ?>%</span>
                                         </div>
-                                        <span class="ml-2"><?php echo $job['progress']; ?>%</span>
                                     </div>
-                                </div>
                                 <div class="text-right">
-                                    <div class="mb-2">
-                                        <small class="text-muted">Order #<?php echo $job['order_number']; ?></small>
+                                        <div class="mb-2">
+                                            <small class="text-muted">Order #<?php echo $job['order_number']; ?></small>
+                                        </div>
+                                        <?php if(!empty($permissions['update_status'])): ?>
+                                            <a href="update_status.php?order_id=<?php echo $job['id']; ?>" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i> Update
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
-                                    <a href="update_status.php?order_id=<?php echo $job['id']; ?>" 
-                                       class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i> Update
-                                    </a>
+                                    <?php if($job['scheduled_date']): ?>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar"></i> 
+                                            Due: <?php echo date('M d, Y', strtotime($job['scheduled_date'])); ?>
+                                        </small>
+                                    </div>
+                                <?php endif; ?>
                                 </div>
                             </div>
-                            <?php if($job['scheduled_date']): ?>
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar"></i> 
-                                        Due: <?php echo date('M d, Y', strtotime($job['scheduled_date'])); ?>
-                                    </small>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <?php endforeach; ?>
-                        <div class="text-center mt-3">
-                            <a href="assigned_jobs.php" class="btn btn-outline-primary">View All Jobs</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center p-4">
-                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                            <h4>No Assigned Jobs</h4>
-                            <p class="text-muted">You don't have any assigned jobs at the moment.</p>
-                            <a href="schedule.php" class="btn btn-primary">View Schedule</a>
-                        </div>
-                    <?php endif; ?>
+                            <?php endforeach; ?>
+                            <div class="text-center mt-3">
+                                <a href="assigned_jobs.php" class="btn btn-outline-primary">View All Jobs</a>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center p-4">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <h4>No Assigned Jobs</h4>
+                                <p class="text-muted">You don't have any assigned jobs at the moment.</p>
+                                <a href="schedule.php" class="btn btn-primary">View Schedule</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Recent Activity -->

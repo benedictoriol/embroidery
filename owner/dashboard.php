@@ -24,7 +24,7 @@ $stats_stmt = $pdo->prepare("
     SELECT 
         (SELECT COUNT(*) FROM orders WHERE shop_id = ?) as total_orders,
         (SELECT COUNT(*) FROM orders WHERE shop_id = ? AND status = 'pending') as pending_orders,
-        (SELECT COUNT(*) FROM orders WHERE shop_id = ? AND status = 'in_progress') as active_orders,
+        (SELECT COUNT(*) FROM orders WHERE shop_id = ? AND status IN ('accepted', 'in_progress')) as active_orders,
         (SELECT COUNT(*) FROM orders WHERE shop_id = ? AND status = 'completed') as completed_orders,
         (SELECT SUM(price) FROM orders WHERE shop_id = ? AND status = 'completed') as total_earnings,
         (SELECT COUNT(*) FROM shop_employees WHERE shop_id = ? AND status = 'active') as total_staff,

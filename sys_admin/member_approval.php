@@ -21,8 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$id]);
                 $message = 'User approved successfully.';
             } elseif ($action === 'reject_user') {
+                $roleStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+                $roleStmt->execute([$id]);
+                $role = $roleStmt->fetchColumn();
                 $stmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE id = ?");
                 $stmt->execute([$id]);
+
+                if ($role === 'owner') {
+                    $shopStmt = $pdo->prepare("UPDATE shops SET status = 'rejected' WHERE owner_id = ?");
+                    $shopStmt->execute([$id]);
+                }
                 $message = 'User rejected successfully.';
                 $messageType = 'warning';
             } elseif ($action === 'approve_shop') {
@@ -42,6 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'reject_shop') {
                 $stmt = $pdo->prepare("UPDATE shops SET status = 'rejected' WHERE id = ?");
                 $stmt->execute([$id]);
+                $ownerStmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE id = (SELECT owner_id FROM shops WHERE id = ?)");
+                $ownerStmt->execute([$id]);
                 $message = 'Shop rejected successfully.';
                 $messageType = 'warning';
             } else {

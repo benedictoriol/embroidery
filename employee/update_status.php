@@ -5,6 +5,36 @@ require_role('employee');
 
 $employee_id = $_SESSION['user']['id'];
 
+$emp_stmt = $pdo->prepare("
+    SELECT se.*, s.shop_name, s.logo 
+    FROM shop_employees se 
+    JOIN shops s ON se.shop_id = s.id 
+    WHERE se.user_id = ? AND se.status = 'active'
+");
+$emp_stmt->execute([$employee_id]);
+$employee = $emp_stmt->fetch();
+
+if(!$employee) {
+    die("You are not assigned to any shop. Please contact your shop owner.");
+}
+
+$permissions = [
+    'view_jobs' => true,
+    'update_status' => true,
+    'upload_photos' => true
+];
+if (!empty($employee['permissions'])) {
+    $decoded_permissions = json_decode($employee['permissions'], true);
+    if (is_array($decoded_permissions)) {
+        $permissions = array_merge($permissions, $decoded_permissions);
+    }
+}
+
+if (empty($permissions['update_status'])) {
+    header("Location: schedule.php");
+    exit();
+}
+
 // Get assigned jobs
 $jobs_stmt = $pdo->prepare("
     SELECT o.*, u.fullname as client_name, s.shop_name
@@ -104,8 +134,16 @@ if(isset($_POST['update_status'])) {
             </a>
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
-                <li><a href="update_status.php" class="nav-link active">Update Status</a></li>
-                <li><a href="upload_photos.php" class="nav-link">Upload Photos</a></li>
+                <?php if(!empty($permissions['view_jobs'])): ?>
+                    <li><a href="assigned_jobs.php" class="nav-link">My Jobs</a></li>
+                <?php endif; ?>
+                <?php if(!empty($permissions['update_status'])): ?>
+                    <li><a href="update_status.php" class="nav-link active">Update Status</a></li>
+                <?php endif; ?>
+                <?php if(!empty($permissions['upload_photos'])): ?>
+                    <li><a href="upload_photos.php" class="nav-link">Upload Photos</a></li>
+                <?php endif; ?>
+                <li><a href="schedule.php" class="nav-link">Schedule</a></li>
                 <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
             </ul>
         </div>
