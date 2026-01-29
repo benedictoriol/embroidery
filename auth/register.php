@@ -73,6 +73,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Register - Embroidery Platform</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="auth-container">
     <div class="auth-card">
@@ -86,81 +87,75 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             </p>
         </div>
         
-        <?php if($error): ?>
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-            </div>
-        <?php endif; ?>
-        
-        <?php if($success): ?>
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> <?php echo $success; ?>
-                <p class="mt-2"><a href="login.php" class="btn btn-sm btn-primary">Login Now</a></p>
-            </div>
-        <?php else: ?>
-            <form method="POST">
-                <input type="hidden" name="type" value="<?php echo $type; ?>">
-                
-                <div class="form-group">
-                    <label>Full Name *</label>
-                    <input type="text" name="fullname" class="form-control" required 
-                           placeholder="Enter your full name">
+        <div class="auth-body">
+            <?php if($error): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
                 </div>
                 
-                <div class="form-group">
-                    <label>Email Address *</label>
-                    <input type="email" name="email" class="form-control" required 
-                           placeholder="Enter your email">
+                <?php endif; ?>
+            
+            <?php if($success): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <?php echo $success; ?>
+                    <p class="mt-2"><a href="login.php" class="btn btn-sm btn-primary">Login Now</a></p>
                 </div>
                 
-                <div class="form-group">
-                    <label>Phone Number *</label>
-                    <input type="tel" name="phone" class="form-control" required 
-                           placeholder="Enter your phone number">
-                </div>
-                
-                <div class="row" style="display: flex; gap: 15px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label>Password *</label>
-                        <input type="password" name="password" class="form-control" required 
-                               placeholder="At least 8 characters" minlength="8">
+                <?php else: ?>
+                <form method="POST">
+                    <input type="hidden" name="type" value="<?php echo $type; ?>">
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="fullname">Full Name *</label>
+                        <input type="text" name="fullname" class="form-control" required 
+                               placeholder="Enter your full name" id="fullname">
                     </div>
                     
-                    <div class="form-group" style="flex: 1;">
-                        <label>Confirm Password *</label>
-                        <input type="password" name="confirm_password" class="form-control" required 
-                               placeholder="Confirm your password">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address *</label>
+                        <input type="email" name="email" class="form-control" required 
+                               placeholder="Enter your email" id="email">
                     </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone Number *</label>
+                        <input type="tel" name="phone" class="form-control" required 
+                               placeholder="Enter your phone number" id="phone">
+                </div>
+
+                <div class="form-group">
+                        <label class="form-label" for="password">Password *</label>
+                        <input type="password" name="password" class="form-control" required 
+                               placeholder="At least 8 characters" minlength="8" id="password">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="confirm_password">Confirm Password *</label>
+                    <input type="password" name="confirm_password" class="form-control" required 
+                           placeholder="Confirm your password" id="confirm_password">
                 </div>
                 
                 <?php if($type == 'owner'): ?>
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle"></i> Shop Owner Registration</h6>
-                        <p class="mb-0">After registration, you'll need to provide business details and documents for verification.</p>
-                    </div>
-                <?php endif; ?>
-                
-                <div class="form-check mb-3">
-                    <input type="checkbox" class="form-check-input" id="terms" required>
-                    <label class="form-check-label" for="terms">
-                        I agree to the <a href="#" class="text-primary">Terms & Conditions</a>
-                    </label>
-                </div>
-                
-                <button type="submit" class="btn btn-success btn-lg w-100">
-                    <i class="fas fa-user-plus"></i> Create Account
-                </button>
-            </form>
-        <?php endif; ?>
-        
-        <div class="text-center mt-4">
-            <p>Already have an account? <a href="login.php" class="text-primary">Login here</a></p>
-            <p>
-                Register as: 
-                <a href="register.php?type=client" class="btn btn-sm btn-outline-primary">Client</a>
-                <a href="register.php?type=owner" class="btn btn-sm btn-outline-success">Shop Owner</a>
-            </p>
-            <p><a href="../index.php" class="text-muted">Back to Home</a></p>
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Shop Owner Registration</h6>
+                            <p class="mb-0">After registration, you'll need to provide business details and documents for verification.</p>
+                        </div>
+                    <?php endif; ?>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+            <?php endif; ?>
+            
+            <div class="auth-footer">
+                <p class="text-muted">Already have an account? <a href="login.php" class="text-primary">Login here</a></p>
+                <p>
+                    Register as: 
+                    <a href="register.php?type=client" class="btn btn-sm btn-outline-primary">Client</a>
+                    <a href="register.php?type=owner" class="btn btn-sm btn-outline-primary">Shop Owner</a>
+                </p>
+                <p><a href="../index.php" class="text-muted">Back to Home</a></p>
+            </div>
         </div>
     </div>
 </body>

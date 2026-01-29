@@ -73,10 +73,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: var(--radius-xl);
-            padding: 3rem;
+            padding: 2.75rem;
             width: 100%;
             max-width: 420px;
-            box-shadow: var(--shadow-2xl);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             position: relative;
             z-index: 1;
             animation: slideUp 0.6s ease-out;
@@ -87,6 +88,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-bottom: 2.5rem;
         }
         
+        .login-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            margin-bottom: 0;
+        }
+
         .logo-icon {
             font-size: 4rem;
             margin-bottom: 1rem;
@@ -104,11 +114,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         
         .role-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             background: white;
             padding: 1rem;
             border-radius: var(--radius);
             border: 1px solid var(--gray-200);
-            text-align: center;
+            text-align: left;
+            text-decoration: none;
+            color: inherit;
             transition: all 0.3s;
         }
         
@@ -146,7 +161,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.75rem;
         }
         
         .divider {
@@ -178,6 +193,31 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             padding: 1rem;
             margin-top: 2rem;
             border-left: 4px solid var(--primary-500);
+        }
+        
+        @media (max-width: 640px) {
+            .login-container {
+                padding: 1.5rem;
+            }
+
+            .login-card {
+                padding: 2rem;
+            }
+
+            .role-preview {
+                grid-template-columns: 1fr;
+            }
+
+            .remember-forgot {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .login-card {
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
