@@ -571,3 +571,4 @@ function payment_status_pill($status) {
     </div>
 </body>
 </html>
+

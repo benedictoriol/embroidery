@@ -144,3 +144,4 @@ function notification_badge($type) {
     </div>
 </body>
 </html>
+

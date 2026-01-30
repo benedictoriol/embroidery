@@ -203,3 +203,4 @@ function client_status_badge($status) {
     </div>
 </body>
 </html>
+

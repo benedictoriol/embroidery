@@ -19,3 +19,4 @@ function create_notification(PDO $pdo, int $user_id, ?int $order_id, string $typ
     $stmt->execute([$user_id, $order_id, $type, $message]);
 }
 ?>
+
