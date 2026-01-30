@@ -355,9 +355,16 @@ CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `order_id` int(11) DEFAULT NULL,
+<<<<<<< HEAD
   `type` varchar(50) NOT NULL,
   `message` varchar(255) NOT NULL,
   `read_at` timestamp NULL DEFAULT NULL,
+=======
+  `title` varchar(150) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('info','success','warning','danger') DEFAULT 'info',
+  `is_read` tinyint(1) DEFAULT 0,
+>>>>>>> 1e12aff6db2f7584e86b0c8cb9876e301444afdd
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -398,7 +405,25 @@ CREATE TABLE `payments` (
 
 -- --------------------------------------------------------
 
+<<<<<<< HEAD
 
+=======
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `type` varchar(50) NOT NULL,
+  `message` varchar(255) NOT NULL,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+>>>>>>> 1e12aff6db2f7584e86b0c8cb9876e301444afdd
 
 
 --

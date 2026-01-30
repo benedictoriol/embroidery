@@ -9,6 +9,7 @@ $success = '';
 
 if(isset($_POST['mark_all_read'])) {
     $mark_stmt = $pdo->prepare("UPDATE notifications SET read_at = NOW() WHERE user_id = ? AND read_at IS NULL");
+
     $mark_stmt->execute([$client_id]);
     $unread_notifications = 0;
     $success = 'All notifications marked as read.';
@@ -112,6 +113,8 @@ function notification_badge($type) {
                     <div class="notification-meta">
                         <div>
                             <strong><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', $notification['type']))); ?></strong>
+
+
                             <?php echo notification_badge($notification['type']); ?>
                         </div>
                         <span class="text-muted small"><?php echo date('M d, Y h:i A', strtotime($notification['created_at'])); ?></span>
