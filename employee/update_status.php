@@ -44,8 +44,24 @@ if(isset($_POST['update_status'])) {
     if(!$order_info) {
         $error = "Unable to update this order.";
     } else {
-        try {
-            $order_info_stmt = $pdo->prepare("
+       $order_id = (int) $_POST['order_id'];
+        $progress = (int) $_POST['progress'];
+        $status = $_POST['status'];
+        $employee_notes = sanitize($_POST['employee_notes'] ?? '');
+
+        $order_info_stmt = $pdo->prepare("
+            SELECT status, client_id, order_number
+            FROM orders
+            WHERE id = ? AND assigned_to = ?
+        ");
+        $order_info_stmt->execute([$order_id, $employee_id]);
+                $order_info = $order_info_stmt->fetch();
+
+        if(!$order_info) {
+            $error = "Unable to update this order.";
+        } else {
+            try {
+                $order_info_stmt = $pdo->prepare("
             SELECT o.status, o.order_number, o.client_id, s.shop_name, s.owner_id
             FROM orders o
             JOIN shops s ON o.shop_id = s.id
@@ -95,27 +111,28 @@ if(isset($_POST['update_status'])) {
                 );
             }
             
-            $success = "Status updated successfully!";
-        } catch(PDOException $e) {
-            $error = "Failed to update status: " . $e->getMessage();
-        
-        log_audit(
-            $pdo,
-            $employee_id,
-            $employee_role,
-            'update_order_status',
-            'orders',
-            (int) $order_id,
-            [
-                'status' => $current_order['status'] ?? null,
-                'progress' => $current_order['progress'] ?? null,
-            ],
-            [
-                'status' => $status,
-                'progress' => (int) $progress,
-            ]
-        );
-    }
+           $success = "Status updated successfully!";
+            } catch(PDOException $e) {
+                $error = "Failed to update status: " . $e->getMessage();
+
+                log_audit(
+                    $pdo,
+                    $employee_id,
+                    $employee_role,
+                    'update_order_status',
+                    'orders',
+                    (int) $order_id,
+                    [
+                        'status' => $current_order['status'] ?? null,
+                        'progress' => $current_order['progress'] ?? null,
+                    ],
+                    [
+                        'status' => $status,
+                        'progress' => (int) $progress,
+                    ]
+                );
+            }
+        }
     }
 }
 ?>

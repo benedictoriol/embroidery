@@ -141,7 +141,7 @@ $rated_orders = $rated_stmt->fetchAll();
     <nav class="navbar">
         <div class="container d-flex justify-between align-center">
             <a href="dashboard.php" class="navbar-brand">
-                <i class="fas fa-star"></i> Rate Providers
+                <i class="fas fa-user"></i> Client Portal
             </a>
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
@@ -154,7 +154,14 @@ $rated_orders = $rated_stmt->fetchAll();
                         <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
                     <?php endif; ?>
                 </a></li>
-                <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
+                <li class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle">
+                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($_SESSION['user']['fullname']); ?>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="../auth/logout.php" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </li>
             </ul>
         </div>
     </nav>

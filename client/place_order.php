@@ -142,17 +142,27 @@ if(isset($_POST['place_order'])) {
     <nav class="navbar">
         <div class="container d-flex justify-between align-center">
             <a href="dashboard.php" class="navbar-brand">
-                <i class="fas fa-shopping-cart"></i> Place New Order
+                <i class="fas fa-user"></i> Client Portal
             </a>
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
                 <li><a href="place_order.php" class="nav-link active">Place Order</a></li>
+                <li><a href="track_order.php" class="nav-link">Track Orders</a></li>
+                <li><a href="customize_design.php" class="nav-link">Customize Design</a></li>
+                <li><a href="rate_provider.php" class="nav-link">Rate Provider</a></li>
                 <li><a href="notifications.php" class="nav-link">Notifications
                     <?php if($unread_notifications > 0): ?>
                         <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
                     <?php endif; ?>
                 </a></li>
-                <li><a href="../auth/logout.php" class="nav-link">Logout</a></li>
+                 <li class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle">
+                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($_SESSION['user']['fullname']); ?>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="../auth/logout.php" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </li>
             </ul>
         </div>
     </nav>

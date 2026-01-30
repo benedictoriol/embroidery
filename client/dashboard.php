@@ -92,7 +92,7 @@ function client_status_badge($status) {
 <nav class="navbar">
         <div class="container d-flex justify-between align-center">
             <a href="dashboard.php" class="navbar-brand">
-                <i class="fas fa-user"></i> Client Dashboard
+                <i class="fas fa-user"></i> Client Portal
             </a>
             <ul class="navbar-nav">
                 <li><a href="dashboard.php" class="nav-link active">Dashboard</a></li>
