@@ -3,9 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
-
 -- Generation Time: Jan 28, 2026 at 10:47 AM
-
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -67,7 +65,6 @@ INSERT INTO `activities` (`id`, `user_id`, `user_name`, `activity`, `status`, `c
 -- --------------------------------------------------------
 
 --
-<<<<<<< HEAD
 -- Table structure for table `audit_logs`
 --
 
@@ -145,40 +142,6 @@ INSERT INTO `appointments` (`id`, `customer_id`, `staff_id`, `appointment_date`,
 -- --------------------------------------------------------
 
 --
-<<<<<<< HEAD
-=======
--- Table structure for table `audit_logs`
---
-
-CREATE TABLE `audit_logs` (
-  `id` int(11) NOT NULL,
-  `actor_id` int(11) DEFAULT NULL,
-  `actor_role` varchar(50) DEFAULT NULL,
-  `action` varchar(150) NOT NULL,
-  `entity_type` varchar(100) NOT NULL,
-  `entity_id` int(11) DEFAULT NULL,
-  `old_values` text DEFAULT NULL,
-  `new_values` text DEFAULT NULL,
-  `ip_address` varchar(45) DEFAULT NULL,
-  `user_agent` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `audit_logs`
---
-
-INSERT INTO `audit_logs` (`id`, `actor_id`, `actor_role`, `action`, `entity_type`, `entity_id`, `old_values`, `new_values`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'sys_admin', 'approve_shop', 'shops', 2, '{\"status\":\"pending\"}', '{\"status\":\"active\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 09:41:26'),
-(2, 1, 'sys_admin', 'activate_shop_owner', 'users', 12, '{\"status\":\"\"}', '{\"status\":\"active\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 09:41:26'),
-(3, 12, 'owner', 'accept_order', 'orders', 9, '{\"status\":\"pending\"}', '{\"status\":\"accepted\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 11:10:22'),
-(4, 12, 'owner', 'accept_order', 'orders', 10, '{\"status\":\"pending\"}', '{\"status\":\"accepted\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 11:20:37'),
-(5, 12, 'owner', 'accept_order', 'orders', 11, '{\"status\":\"pending\"}', '{\"status\":\"accepted\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 11:41:12');
-
--- --------------------------------------------------------
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Table structure for table `budgets`
 --
 
@@ -336,46 +299,6 @@ CREATE TABLE `material_orders` (
 -- --------------------------------------------------------
 
 --
-<<<<<<< HEAD
-=======
--- Table structure for table `notifications`
---
-
-CREATE TABLE `notifications` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `order_id` int(11) DEFAULT NULL,
-  `type` varchar(50) NOT NULL,
-  `message` varchar(255) NOT NULL,
-  `read_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `user_id`, `order_id`, `type`, `message`, `read_at`, `created_at`) VALUES
-(1, 3, 9, 'info', 'Your order #ORD-20260130-AB9D3D has been submitted and is awaiting shop acceptance.', NULL, '2026-01-30 11:08:42'),
-(2, 3, 9, 'order_status', 'Your order #ORD-20260130-AB9D3D has been accepted by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:10:22'),
-(3, 3, 9, 'success', 'Your order #ORD-20260130-AB9D3D has been accepted and will be scheduled shortly.', NULL, '2026-01-30 11:10:22'),
-(4, 3, 10, 'info', 'Your order #ORD-20260130-787798 has been submitted and is awaiting shop acceptance.', NULL, '2026-01-30 11:20:23'),
-(5, 3, 10, 'order_status', 'Your order #ORD-20260130-787798 has been accepted by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:20:37'),
-(6, 3, 10, 'success', 'Your order #ORD-20260130-787798 has been accepted and will be scheduled shortly.', NULL, '2026-01-30 11:20:37'),
-(7, 3, 10, 'order_status', 'Order #ORD-20260130-787798 status updated to  by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:20:59'),
-(8, 12, 10, 'order_status', 'Order #ORD-20260130-787798 status updated to  by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:20:59'),
-(9, 3, 10, 'info', 'Order #ORD-20260130-787798 has been updated to .', NULL, '2026-01-30 11:20:59'),
-(10, 4, 11, 'info', 'Your order #ORD-20260130-95B3E3 has been submitted and is awaiting shop acceptance.', NULL, '2026-01-30 11:40:41'),
-(11, 4, 11, 'order_status', 'Your order #ORD-20260130-95B3E3 has been accepted by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:41:12'),
-(12, 4, 11, 'success', 'Your order #ORD-20260130-95B3E3 has been accepted and will be scheduled shortly.', NULL, '2026-01-30 11:41:12'),
-(13, 4, 11, 'order_status', 'Order #ORD-20260130-95B3E3 status updated to  by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:41:41'),
-(14, 12, 11, 'order_status', 'Order #ORD-20260130-95B3E3 status updated to  by Ailly Mae Ramil\'s Shop.', NULL, '2026-01-30 11:41:41'),
-(15, 4, 11, 'info', 'Order #ORD-20260130-95B3E3 has been updated to .', NULL, '2026-01-30 11:41:41');
-
--- --------------------------------------------------------
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Table structure for table `orders`
 --
 
@@ -416,7 +339,6 @@ CREATE TABLE `orders` (
 -- Dumping data for table `orders`
 --
 
-<<<<<<< HEAD
 INSERT INTO `orders` (`id`, `order_number`, `client_id`, `shop_id`, `service_type`, `design_description`, `quantity`, `price`, `client_notes`, `status`, `assigned_to`, `progress`, `scheduled_date`, `shop_notes`, `design_file`, `design_approved`, `rating`, `rating_title`, `rating_comment`, `rating_submitted_at`, `revision_count`, `revision_notes`, `revision_requested_at`, `cancellation_reason`, `cancelled_at`, `completed_at`, `created_at`, `updated_at`) VALUES
 (1, 'ORD-20260122-ABC123', 3, 1, 'Custom Logo Embroidery', 'Logo for company uniforms', 50, 2500.00, 'Please match our brand colors.', 'in_progress', NULL, 75, '2026-01-28', NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
 (2, 'ORD-20260122-DEF456', 3, 1, 'Name Patch Embroidery', 'Name patches for employees', 25, 1200.00, 'Include last names only.', 'completed', NULL, 100, '2026-01-27', 'Completed successfully.', NULL, 0, 5, 'Clean finish', 'Great quality, stitches are consistent.', '2026-01-28 10:05:00', 0, NULL, NULL, NULL, NULL, '2026-01-28 10:00:00', '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
@@ -433,22 +355,12 @@ CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `order_id` int(11) DEFAULT NULL,
-  `type` varchar(50) NOT NULL,
-  `message` varchar(255) NOT NULL,
-  `read_at` timestamp NULL DEFAULT NULL,
+  `title` varchar(150) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('info','success','warning','danger') DEFAULT 'info',
+  `is_read` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-=======
-INSERT INTO `orders` (`id`, `order_number`, `client_id`, `shop_id`, `service_type`, `design_description`, `quantity`, `price`, `client_notes`, `status`, `assigned_to`, `progress`, `scheduled_date`, `shop_notes`, `design_file`, `design_approved`, `rating`, `payment_status`, `payment_verified_at`, `rating_title`, `rating_comment`, `rating_submitted_at`, `revision_count`, `revision_notes`, `revision_requested_at`, `cancellation_reason`, `cancelled_at`, `completed_at`, `created_at`, `updated_at`) VALUES
-(1, 'ORD-20260122-ABC123', 3, 1, 'Custom Logo Embroidery', 'Logo for company uniforms', 50, 2500.00, 'Please match our brand colors.', 'in_progress', NULL, 75, '2026-01-28', NULL, NULL, 0, NULL, 'unpaid', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
-(2, 'ORD-20260122-DEF456', 3, 1, 'Name Patch Embroidery', 'Name patches for employees', 25, 1200.00, 'Include last names only.', 'completed', NULL, 100, '2026-01-27', 'Completed successfully.', NULL, 0, 5, 'unpaid', NULL, 'Clean finish', 'Great quality, stitches are consistent.', '2026-01-28 10:05:00', 0, NULL, NULL, NULL, NULL, '2026-01-28 10:00:00', '2026-01-22 12:31:55', '2026-01-22 12:31:55'),
-(3, 'ORD-20260122-GHI789', 3, 1, 'Custom Logo Embroidery', 'Cap embroidery', 30, 900.00, NULL, 'accepted', NULL, 20, '2026-01-29', NULL, NULL, 0, NULL, 'unpaid', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
-(4, 'ORD-20260122-JKL012', 3, 1, 'Name Patch Embroidery', 'Uniform patches', 10, 300.00, NULL, 'completed', NULL, 100, '2026-01-26', 'Delivered to client.', NULL, 0, 4, 'unpaid', NULL, 'Quick turnaround', 'Fast delivery and accurate sizing.', '2026-01-27 10:00:00', 0, NULL, NULL, NULL, NULL, '2026-01-27 09:30:00', '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
-(5, 'ORD-20260122-MNO345', 3, 1, 'Uniform Design', 'Seasonal uniform design', 15, 1500.00, 'Need before end of month.', 'pending', NULL, 0, '2026-02-02', NULL, NULL, 0, NULL, 'unpaid', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-22 12:35:37', '2026-01-22 12:35:37'),
-(9, 'ORD-20260130-AB9D3D', 3, 2, 'T-shirt Embroidery', 'order kay ailly', 5, 10.00, 'paki bilis', 'accepted', 13, 0, NULL, NULL, '9_download.png', 0, NULL, 'unpaid', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-30 11:08:42', '2026-01-30 11:16:48'),
-(10, 'ORD-20260130-787798', 3, 2, 'Cap Embroidery', 'asdf', 1, 2.00, 'asdadas', NULL, 2, 25, NULL, '\n', '10_download.png', 0, NULL, 'unpaid', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-30 11:20:23', '2026-01-30 11:20:59'),
-(11, 'ORD-20260130-95B3E3', 4, 2, 'T-shirt Embroidery', 'paki gawa', 2, 20.00, 'paki bilis', NULL, 2, 26, NULL, '\n\n', '11_download.png', 0, NULL, 'unpaid', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, '2026-01-30 11:40:41', '2026-01-30 11:51:25');
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 
 -- --------------------------------------------------------
 
@@ -468,42 +380,6 @@ CREATE TABLE `order_photos` (
 -- --------------------------------------------------------
 
 --
-<<<<<<< HEAD
-=======
--- Table structure for table `order_status_history`
---
-
-CREATE TABLE `order_status_history` (
-  `id` int(11) NOT NULL,
-  `order_id` int(11) NOT NULL,
-  `employee_id` int(11) DEFAULT NULL,
-  `status` enum('pending','accepted','in_progress','completed','cancelled') NOT NULL,
-  `progress` int(11) DEFAULT 0,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `otp_verifications`
---
-
-CREATE TABLE `otp_verifications` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `otp_code` varchar(10) NOT NULL,
-  `type` enum('registration','reset','upgrade') NOT NULL,
-  `expires_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `verified` tinyint(1) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Table structure for table `payments`
 --
 
@@ -523,8 +399,21 @@ CREATE TABLE `payments` (
 
 -- --------------------------------------------------------
 
-<<<<<<< HEAD
+--
+-- Table structure for table `notifications`
+--
 
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `type` varchar(50) NOT NULL,
+  `message` varchar(255) NOT NULL,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 
 
 --
@@ -561,8 +450,6 @@ CREATE TABLE `otp_verifications` (
 
 -- --------------------------------------------------------
 
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 --
 -- Table structure for table `payroll`
 --
@@ -708,13 +595,8 @@ CREATE TABLE `shops` (
 --
 
 INSERT INTO `shops` (`id`, `owner_id`, `shop_name`, `shop_description`, `address`, `phone`, `email`, `business_permit`, `permit_file`, `logo`, `status`, `rating`, `total_orders`, `total_earnings`, `created_at`, `updated_at`) VALUES
-<<<<<<< HEAD
 (1, 5, 'Thread & Needle Studio', 'Custom embroidery and uniform design services.', '123 Market Street', '09171234567', 'owner@embroidery.com', NULL, NULL, NULL, 'active', 4.5, 5, 6400.00, '2026-01-22 12:20:00', '2026-01-22 12:20:00');
 
-=======
-(1, 5, 'Thread & Needle Studio', 'Custom embroidery and uniform design services.', '123 Market Street', '09171234567', 'owner@embroidery.com', NULL, NULL, NULL, 'active', 4.50, 5, 6400.00, '2026-01-22 12:20:00', '2026-01-22 12:20:00'),
-(2, 12, 'Ailly Mae Ramil\'s Shop', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', 0.00, 3, 0.00, '2026-01-30 09:39:56', '2026-01-30 11:40:41');
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 
 -- --------------------------------------------------------
 
@@ -733,32 +615,6 @@ CREATE TABLE `shop_employees` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-<<<<<<< HEAD
-=======
---
--- Dumping data for table `shop_employees`
---
-
-INSERT INTO `shop_employees` (`id`, `shop_id`, `user_id`, `position`, `permissions`, `hired_date`, `status`, `created_at`) VALUES
-(1, 2, 13, 'Designer', '{\"view_jobs\":true,\"update_status\":true,\"upload_photos\":true}', '2026-01-30', 'active', '2026-01-30 11:16:41'),
-(2, 2, 2, 'Production Manager', '{\"view_jobs\":true,\"update_status\":true,\"upload_photos\":true}', '2026-01-30', 'active', '2026-01-30 11:19:11');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `system_settings`
---
-
-CREATE TABLE `system_settings` (
-  `id` int(11) NOT NULL,
-  `setting_key` varchar(100) NOT NULL,
-  `setting_value` text DEFAULT NULL,
-  `updated_by` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- --------------------------------------------------------
 
 --
@@ -784,22 +640,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `fullname`, `email`, `password`, `role`, `status`, `created_at`, `email_verified`, `phone`, `phone_verified`, `last_login`) VALUES
-<<<<<<< HEAD
 (1, 'Administrator', 'admin@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'sys_admin', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-28 17:37:48'),
 (2, 'Staff Member', 'staff@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-27 21:00:20'),
 (3, 'Customer', 'customer@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'client', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-27 20:53:59'),
 (4, 'kim', 'kim@gmail.com', '$2y$12$/6/fhAh8USgtPJsGpB9IAea3NzCCjVSlC7KMiflw9wkKLeiS1f7B2', 'client', 'active', '2026-01-20 12:22:00', 0, NULL, 0, NULL),
 (5, 'Shop Owner', 'owner@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'owner', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-27 19:15:00');
-=======
-(1, 'Administrator', 'admin@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'sys_admin', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-30 17:41:00'),
-(2, 'Staff Member', 'staff@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-30 19:41:28'),
-(3, 'Customer', 'customer@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'client', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-30 19:20:00'),
-(4, 'kim', 'kim@gmail.com', '$2y$12$/6/fhAh8USgtPJsGpB9IAea3NzCCjVSlC7KMiflw9wkKLeiS1f7B2', 'client', 'active', '2026-01-20 12:22:00', 0, NULL, 0, '2026-01-30 19:40:18'),
-(5, 'Shop Owner', 'owner@embroidery.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'owner', 'active', '2026-01-19 15:28:09', 0, NULL, 0, '2026-01-27 19:15:00'),
-(12, 'Ailly Mae Ramil', 'ailly@embroidery.com', '$2y$10$k8dUCqZ7/aurFcjprSJ8w.C470NkRSewkR5iGAvu2yWG4qLuswWkm', 'owner', 'active', '2026-01-30 09:39:56', 0, '09163961330', 0, '2026-01-30 19:41:09'),
-(13, 'benedict', 'ben@embroidery.com', '$2y$10$1Vftd7XHXK/8S.mEUUBgyeoEo.RBJtS/d4cUMRGzhit1qOvJFo0ny', 'employee', '', '2026-01-30 11:15:41', 0, '12345', 0, NULL);
-
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 --
 -- Indexes for dumped tables
 --
@@ -811,7 +656,6 @@ ALTER TABLE `activities`
   ADD PRIMARY KEY (`id`);
 
 --
-<<<<<<< HEAD
 -- Indexes for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
@@ -823,8 +667,6 @@ ALTER TABLE `audit_logs`
 
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Indexes for table `analytics_data`
 --
 ALTER TABLE `analytics_data`
@@ -834,7 +676,6 @@ ALTER TABLE `analytics_data`
   ADD KEY `idx_metric_type` (`metric_type`);
 
 --
-<<<<<<< HEAD
 -- Indexes for table `system_settings`
 --
 ALTER TABLE `system_settings`
@@ -843,8 +684,6 @@ ALTER TABLE `system_settings`
   ADD KEY `updated_by` (`updated_by`);
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Indexes for table `appointments`
 --
 ALTER TABLE `appointments`
@@ -853,19 +692,6 @@ ALTER TABLE `appointments`
   ADD KEY `staff_id` (`staff_id`);
 
 --
-<<<<<<< HEAD
-=======
--- Indexes for table `audit_logs`
---
-ALTER TABLE `audit_logs`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `actor_id` (`actor_id`),
-  ADD KEY `entity_type` (`entity_type`),
-  ADD KEY `entity_id` (`entity_id`),
-  ADD KEY `action` (`action`);
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Indexes for table `budgets`
 --
 ALTER TABLE `budgets`
@@ -924,17 +750,6 @@ ALTER TABLE `material_orders`
   ADD KEY `material_id` (`material_id`);
 
 --
-<<<<<<< HEAD
-=======
--- Indexes for table `notifications`
---
-ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `order_id` (`order_id`);
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Indexes for table `orders`
 --
 ALTER TABLE `orders`
@@ -952,7 +767,6 @@ ALTER TABLE `order_photos`
   ADD KEY `employee_id` (`employee_id`);
 
 --
-<<<<<<< HEAD
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
@@ -962,8 +776,6 @@ ALTER TABLE `notifications`
 
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Indexes for table `order_status_history`
 --
 ALTER TABLE `order_status_history`
@@ -1029,17 +841,6 @@ ALTER TABLE `shop_employees`
   ADD KEY `shop_id` (`shop_id`);
 
 --
-<<<<<<< HEAD
-=======
--- Indexes for table `system_settings`
---
-ALTER TABLE `system_settings`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `setting_key` (`setting_key`),
-  ADD KEY `updated_by` (`updated_by`);
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -1057,7 +858,6 @@ ALTER TABLE `activities`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
-<<<<<<< HEAD
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
@@ -1065,15 +865,12 @@ ALTER TABLE `audit_logs`
 
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- AUTO_INCREMENT for table `analytics_data`
 --
 ALTER TABLE `analytics_data`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
-<<<<<<< HEAD
 -- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
@@ -1081,23 +878,12 @@ ALTER TABLE `system_settings`
 
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
-<<<<<<< HEAD
-=======
--- AUTO_INCREMENT for table `audit_logs`
---
-ALTER TABLE `audit_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- AUTO_INCREMENT for table `budgets`
 --
 ALTER TABLE `budgets`
@@ -1146,23 +932,10 @@ ALTER TABLE `material_orders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
-<<<<<<< HEAD
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-=======
--- AUTO_INCREMENT for table `notifications`
---
-ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
-
---
--- AUTO_INCREMENT for table `orders`
---
-ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 
 --
 -- AUTO_INCREMENT for table `order_photos`
@@ -1171,7 +944,6 @@ ALTER TABLE `order_photos`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
-<<<<<<< HEAD
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
@@ -1179,17 +951,12 @@ ALTER TABLE `notifications`
 
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- AUTO_INCREMENT for table `order_status_history`
 --
 ALTER TABLE `order_status_history`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 --
 -- AUTO_INCREMENT for table `otp_verifications`
 --
@@ -1230,36 +997,19 @@ ALTER TABLE `service_requests`
 -- AUTO_INCREMENT for table `shops`
 --
 ALTER TABLE `shops`
-<<<<<<< HEAD
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-=======
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 
 --
 -- AUTO_INCREMENT for table `shop_employees`
 --
 ALTER TABLE `shop_employees`
-<<<<<<< HEAD
-=======
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `system_settings`
---
-ALTER TABLE `system_settings`
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-<<<<<<< HEAD
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
-=======
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 
 --
 -- Constraints for dumped tables
@@ -1318,16 +1068,6 @@ ALTER TABLE `material_orders`
   ADD CONSTRAINT `material_orders_ibfk_1` FOREIGN KEY (`material_id`) REFERENCES `raw_materials` (`id`);
 
 --
-<<<<<<< HEAD
-=======
--- Constraints for table `notifications`
---
-ALTER TABLE `notifications`
-  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
-  ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`);
-
---
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Constraints for table `orders`
 --
 ALTER TABLE `orders`
@@ -1343,7 +1083,6 @@ ALTER TABLE `order_photos`
   ADD CONSTRAINT `order_photos_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `users` (`id`);
 
 --
-<<<<<<< HEAD
 -- Constraints for table `notifications`
 --
 ALTER TABLE `notifications`
@@ -1351,8 +1090,6 @@ ALTER TABLE `notifications`
   ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`);
 
 --
-=======
->>>>>>> 91f6a796fc214b9064c8ef56e2c9224c8d5ad04d
 -- Constraints for table `order_status_history`
 --
 ALTER TABLE `order_status_history`

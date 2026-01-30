@@ -47,9 +47,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 
                 // Insert user
+                $user_status = $user_type === 'owner' ? 'pending' : 'active';
                 $stmt = $pdo->prepare("
                     INSERT INTO users (fullname, email, password, phone, role, status) 
-                    VALUES (?, ?, ?, ?, ?, 'pending')
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
                 
                 $stmt->execute([
@@ -57,7 +58,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $email, 
                     $hashed_password, 
                     $phone, 
-                    $user_type
+                    $user_type,
+                    $user_status
                 ]);
                 
                 $user_id = $pdo->lastInsertId();
@@ -72,7 +74,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $shop_stmt->execute([$user_id, $shop_name]);
                 }
                 
-                $success = "Registration successful! Your account is pending approval.";
+                $success = $user_status === 'pending'
+                    ? "Registration successful! Your account is pending approval."
+                    : "Registration successful! You can now log in.";
             }
         } catch(PDOException $e) {
             $error = "Registration failed: " . $e->getMessage();

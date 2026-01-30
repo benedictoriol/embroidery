@@ -16,11 +16,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
     
     try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? AND status = 'active'");
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         
         if($user && password_verify($password, $user['password'])) {
+            if ($user['status'] !== 'active') {
+                $error = "Your account is pending approval. Please wait for activation.";
+            } else {
             unset($user['password']);
             $_SESSION['user'] = $user;
             
@@ -28,7 +31,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $update_stmt->execute([$user['id']]);
             
             redirect_based_on_role($user['role']);
-            
+            }
         } else {
             $error = "Invalid email or password!";
         }
